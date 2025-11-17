@@ -1,43 +1,138 @@
-import React, { useState } from 'react';
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import Header from './components/Header';
+import ProtectedRoute from './components/ProtectedRoute';
+import LoginPage from './pages/LoginPage';
+import HomePage from './pages/HomePage';
+import ClubForm from './pages/ClubForm';
+import ClubOverviewPage from './pages/ClubOverviewPage';
+import MemberForm from './pages/MemberForm';
+import AdminPage from './pages/AdminPage';
+import AddAdminPage from './pages/AddAdminPage';
+import UnauthorizedPage from './pages/UnauthorizedPage';
+import './App.css';
 
-function App() {
-  const [message, setMessage] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+const AppContent = () => {
+  const { isAuthenticated, user } = useAuth();
 
-  const fetchTest = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await fetch('/api/test');
-      if (!res.ok) throw new Error(`Status ${res.status}`);
-      const data = await res.json();
-      setMessage(data.message || JSON.stringify(data));
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Redirect Member Admin to their club overview on login
+  if (isAuthenticated && user?.adminType === 'Member Admin') {
+    return (
+      <>
+        <Header />
+        <Routes>
+          <Route path="/club-overview" element={<ClubOverviewPage />} />
+          <Route path="/member/add" element={<MemberForm />} />
+          <Route path="/member/edit/:id" element={<MemberForm isEdit />} />
+          <Route path="/club/edit/:id" element={<ClubForm isEdit />} />
+          <Route path="*" element={<Navigate to="/club-overview" />} />
+        </Routes>
+      </>
+    );
+  }
 
   return (
-    <div className="app">
-      <h1>Member App - Client</h1>
-      <button onClick={fetchTest} disabled={loading}>
-        {loading ? 'Loading...' : 'Fetch /api/test'}
-      </button>
-      {message && (
-        <div className="response">
-          <strong>Response:</strong> {message}
-        </div>
-      )}
-      {error && (
-        <div className="error">
-          <strong>Error:</strong> {error}
-        </div>
-      )}
-    </div>
+    <>
+      {isAuthenticated && <Header />}
+      <Routes>
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/" element={isAuthenticated ? <Navigate to="/home" /> : <Navigate to="/login" />} />
+        
+        {/* Home Page - System Admin and Club Admin only */}
+        <Route 
+          path="/home" 
+          element={
+            <ProtectedRoute requiredRoles={['System Admin', 'Club Admin']}>
+              <HomePage />
+            </ProtectedRoute>
+          } 
+        />
+
+        {/* Club Management Pages */}
+        <Route 
+          path="/club/add" 
+          element={
+            <ProtectedRoute requiredRoles={['System Admin', 'Club Admin']}>
+              <ClubForm />
+            </ProtectedRoute>
+          } 
+        />
+
+        <Route 
+          path="/club/edit/:id" 
+          element={
+            <ProtectedRoute requiredRoles={['System Admin', 'Club Admin']}>
+              <ClubForm isEdit />
+            </ProtectedRoute>
+          } 
+        />
+
+        {/* Club Overview */}
+        <Route 
+          path="/club-overview" 
+          element={
+            <ProtectedRoute requiredRoles={['System Admin', 'Club Admin']}>
+              <ClubOverviewPage />
+            </ProtectedRoute>
+          } 
+        />
+
+        {/* Member Management Pages */}
+        <Route 
+          path="/member/add" 
+          element={
+            <ProtectedRoute requiredRoles={['System Admin', 'Club Admin', 'Member Admin']}>
+              <MemberForm />
+            </ProtectedRoute>
+          } 
+        />
+
+        <Route 
+          path="/member/edit/:id" 
+          element={
+            <ProtectedRoute requiredRoles={['System Admin', 'Club Admin', 'Member Admin']}>
+              <MemberForm isEdit />
+            </ProtectedRoute>
+          } 
+        />
+
+        {/* Admin Management - System Admin only */}
+        <Route 
+          path="/admins" 
+          element={
+            <ProtectedRoute requiredRoles={['System Admin']}>
+              <AdminPage />
+            </ProtectedRoute>
+          } 
+        />
+
+        <Route 
+          path="/admin/add" 
+          element={
+            <ProtectedRoute requiredRoles={['System Admin']}>
+              <AddAdminPage />
+            </ProtectedRoute>
+          } 
+        />
+
+        {/* Unauthorized and catch-all */}
+        <Route path="/unauthorized" element={<UnauthorizedPage />} />
+        <Route path="*" element={<Navigate to="/login" />} />
+      </Routes>
+    </>
+  );
+};
+
+function App() {
+  return (
+    <Router>
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
+    </Router>
   );
 }
 
 export default App;
+
