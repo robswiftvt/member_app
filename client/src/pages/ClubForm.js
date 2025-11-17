@@ -8,8 +8,7 @@ const ClubForm = ({ isEdit = false }) => {
   const navigate = useNavigate();
   const { id } = useParams();
   const { user } = useAuth();
-  const [formData, setFormData] = useState({ name: '', location: '', homePage: '', status: 'Active', memberAdmin: '' });
-  const [members, setMembers] = useState([]);
+  const [formData, setFormData] = useState({ name: '', location: '', homePage: '', status: 'Active' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(isEdit);
   const [submitting, setSubmitting] = useState(false);
@@ -18,7 +17,6 @@ const ClubForm = ({ isEdit = false }) => {
     if (isEdit && id) {
       fetchClub();
     }
-    fetchMembers();
   }, []);
 
   const fetchClub = async () => {
@@ -31,23 +29,11 @@ const ClubForm = ({ isEdit = false }) => {
         location: data.location || '',
         homePage: data.homePage || '',
         status: data.status,
-        memberAdmin: data.memberAdmin?._id || '',
       });
     } catch (err) {
       setError(err.message);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const fetchMembers = async () => {
-    try {
-      const response = await apiCall('/members?limit=1000');
-      if (!response.ok) throw new Error('Failed to fetch members');
-      const data = await response.json();
-      setMembers(data);
-    } catch (err) {
-      console.error('Fetch members error:', err);
     }
   };
 
@@ -73,10 +59,7 @@ const ClubForm = ({ isEdit = false }) => {
         payload.homePage = formData.homePage.trim();
       }
 
-      // Only include memberAdmin when a selection was made.
-      if (formData.memberAdmin && formData.memberAdmin !== '') {
-        payload.memberAdmin = formData.memberAdmin;
-      }
+      // Member admin is managed via the Change Member Admin modal; not set here.
 
       const response = await apiCall(
         isEdit ? `/clubs/${id}` : '/clubs',
@@ -163,24 +146,6 @@ const ClubForm = ({ isEdit = false }) => {
               >
                 <option value="Active">Active</option>
                 <option value="Inactive">Inactive</option>
-              </select>
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="memberAdmin">Member Admin</label>
-              <select
-                id="memberAdmin"
-                name="memberAdmin"
-                value={formData.memberAdmin}
-                onChange={handleChange}
-                disabled={submitting}
-              >
-                <option value="">Select Member Admin</option>
-                {members.map((member) => (
-                  <option key={member._id} value={member._id}>
-                    {member.firstName} {member.lastName}
-                  </option>
-                ))}
               </select>
             </div>
           </div>

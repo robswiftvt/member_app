@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import apiCall from '../utils/apiCall';
 import DataGrid from '../components/DataGrid';
 import ConfirmModal from '../components/ConfirmModal';
+import ChangeMemberAdminModal from '../components/ChangeMemberAdminModal';
 import './ClubOverviewPage.css';
 
 const ClubOverviewPage = () => {
@@ -20,6 +21,7 @@ const ClubOverviewPage = () => {
   const [error, setError] = useState('');
   const [deleteModal, setDeleteModal] = useState({ isOpen: false, member: null });
   const [deleting, setDeleting] = useState(false);
+  const [changeAdminModalOpen, setChangeAdminModalOpen] = useState(false);
 
   useEffect(() => {
     if (clubId) {
@@ -109,6 +111,14 @@ const ClubOverviewPage = () => {
           <button className="btn btn-secondary" onClick={handleEditClub}>
             Edit Club
           </button>
+          {club.memberAdmin && (
+            <button
+              className="btn btn-secondary"
+              onClick={() => setChangeAdminModalOpen(true)}
+            >
+              Change Admin
+            </button>
+          )}
           {user?.adminType !== 'Member Admin' && (
             <button className="btn btn-secondary" onClick={() => navigate('/home')}>
               Back to Home
@@ -133,7 +143,9 @@ const ClubOverviewPage = () => {
         {club.memberAdmin && (
           <div className="detail-row">
             <span className="detail-label">Member Admin:</span>
-            <span>{club.memberAdmin.firstName} {club.memberAdmin.lastName}</span>
+            <span className="member-admin-block">
+              <span className="member-admin-name">{club.memberAdmin.firstName} {club.memberAdmin.lastName}</span>
+            </span>
           </div>
         )}
       </div>
@@ -166,6 +178,13 @@ const ClubOverviewPage = () => {
         onConfirm={handleDeleteConfirm}
         onCancel={() => setDeleteModal({ isOpen: false, member: null })}
         isLoading={deleting}
+      />
+      <ChangeMemberAdminModal
+        isOpen={changeAdminModalOpen}
+        onClose={() => setChangeAdminModalOpen(false)}
+        clubId={clubId}
+        currentAdminMember={club.memberAdmin}
+        onUpdated={() => fetchClubAndMembers()}
       />
     </div>
   );

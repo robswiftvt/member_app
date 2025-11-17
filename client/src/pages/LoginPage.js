@@ -37,6 +37,8 @@ const LoginPage = () => {
       // Store token and user info
       login(data.token, {
         email: data.admin.email,
+        firstName: data.admin.firstName,
+        lastName: data.admin.lastName,
         adminType: data.admin.adminType,
         adminId: data.admin.id,
       });

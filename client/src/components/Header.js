@@ -22,7 +22,7 @@ const Header = () => {
           {user && (
             <>
               <span className="user-info">
-                Welcome, <strong>{user.username}</strong> ({user.adminType})
+                Welcome, <strong>{user.firstName} {user.lastName}</strong> ({user.adminType})
               </span>
               <button className="logout-btn" onClick={handleLogout}>
                 Logout

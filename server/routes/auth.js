@@ -58,6 +58,8 @@ router.post('/login', async (req, res) => {
       admin: {
         id: admin._id,
         email: admin.member.email,
+        firstName: admin.member.firstName,
+        lastName: admin.member.lastName,
         adminType: admin.adminType,
       },
     });
