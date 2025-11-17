@@ -65,10 +65,18 @@ const ClubForm = ({ isEdit = false }) => {
       const payload = {
         name: formData.name,
         location: formData.location,
-        homePage: formData.homePage,
         status: formData.status,
-        memberAdmin: formData.memberAdmin || null,
       };
+
+      // Only include homePage when user entered a non-empty URL
+      if (formData.homePage && formData.homePage.trim() !== '') {
+        payload.homePage = formData.homePage.trim();
+      }
+
+      // Only include memberAdmin when a selection was made.
+      if (formData.memberAdmin && formData.memberAdmin !== '') {
+        payload.memberAdmin = formData.memberAdmin;
+      }
 
       const response = await apiCall(
         isEdit ? `/clubs/${id}` : '/clubs',

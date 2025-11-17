@@ -12,7 +12,8 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test --env=jsdom",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "debug": "cross-env BROWSER=none react-scripts start"
   },
   "proxy": "http://localhost:5000",
   "browserslist": {

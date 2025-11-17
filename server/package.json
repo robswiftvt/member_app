@@ -4,7 +4,9 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "nodemon server.js"
+    "dev": "nodemon server.js",
+    "debug": "node --inspect=9229 server.js",
+    "debug:watch": "nodemon --inspect=9229 server.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

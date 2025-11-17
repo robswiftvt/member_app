@@ -62,7 +62,7 @@ router.post(
   [
     body('name').trim().notEmpty().withMessage('Club name required'),
     body('location').optional().trim(),
-    body('homePage').optional().trim().isURL().withMessage('Invalid URL'),
+    body('homePage').optional({ checkFalsy: true }).trim().isURL().withMessage('Invalid URL'),
     body('status').optional().isIn(['Active', 'Inactive']).withMessage('Invalid status'),
     body('memberAdmin').optional().isMongoId().withMessage('Invalid member ID'),
   ],
@@ -110,7 +110,7 @@ router.put(
   [
     body('name').optional().trim().notEmpty().withMessage('Club name cannot be empty'),
     body('location').optional().trim(),
-    body('homePage').optional().trim().isURL().withMessage('Invalid URL'),
+    body('homePage').optional({ checkFalsy: true }).trim().isURL().withMessage('Invalid URL'),
     body('status').optional().isIn(['Active', 'Inactive']).withMessage('Invalid status'),
     body('memberAdmin').optional().isMongoId().withMessage('Invalid member ID'),
   ],
