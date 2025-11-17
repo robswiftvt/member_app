@@ -24,7 +24,9 @@ const AdminPage = () => {
       const response = await apiCall('/admins');
       if (!response.ok) throw new Error('Failed to fetch admins');
       const data = await response.json();
-      setAdmins(data);
+      // Filter out Member Admins; only show System Admin and Club Admin
+      const filtered = data.filter((admin) => admin.adminType !== 'Member Admin');
+      setAdmins(filtered);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -75,7 +77,7 @@ const AdminPage = () => {
       <div className="page-header">
         <div>
           <h1>Admin Administration</h1>
-          <p>Manage system administrators</p>
+          <p>This page allows you to add or remove System and Club administrators.  Removing an Administrator does not delete them as a club member.  It removes their ability to log into this site. Member Admins are managed on the Club page.</p>
         </div>
         <button className="btn btn-primary" onClick={() => navigate('/admin/add')}>
           + Add Administrator

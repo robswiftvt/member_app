@@ -133,7 +133,6 @@ const AddAdminPage = () => {
             >
               <option value="System Admin">System Admin</option>
               <option value="Club Admin">Club Admin</option>
-              <option value="Member Admin">Member Admin</option>
             </select>
           </div>
 
