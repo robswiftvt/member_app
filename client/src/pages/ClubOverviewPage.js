@@ -143,7 +143,7 @@ const ClubOverviewPage = () => {
       <div className="members-section">
         <div className="members-header">
           <h2>Members ({members.length})</h2>
-          <button className="btn btn-primary" onClick={() => navigate('/member/add')}>
+          <button className="btn btn-primary" onClick={() => navigate(`/member/add?clubId=${clubId}`)}>
             + Add Member
           </button>
         </div>

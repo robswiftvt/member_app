@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import apiCall from '../utils/apiCall';
 import './MemberForm.css';
@@ -7,6 +7,8 @@ import './MemberForm.css';
 const MemberForm = ({ isEdit = false }) => {
   const navigate = useNavigate();
   const { id } = useParams();
+  const [searchParams] = useSearchParams();
+  const queryClubId = searchParams.get('clubId');
   const { user } = useAuth();
   const [formData, setFormData] = useState({
     firstName: '',
@@ -15,7 +17,7 @@ const MemberForm = ({ isEdit = false }) => {
     phone: '',
     address: '',
     membershipType: 'Full',
-    club: user?.clubId || '',
+    club: queryClubId || user?.clubId || '',
   });
   const [clubs, setClubs] = useState([]);
   const [error, setError] = useState('');
@@ -97,7 +99,7 @@ const MemberForm = ({ isEdit = false }) => {
         throw new Error(data.error || 'Failed to save member');
       }
 
-      navigate('/club-overview');
+      navigate(`/club-overview?id=${formData.club}`);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -229,7 +231,7 @@ const MemberForm = ({ isEdit = false }) => {
             <button
               type="button"
               className="btn btn-cancel"
-              onClick={() => navigate('/club-overview')}
+              onClick={() => navigate(`/club-overview?id=${formData.club}`)}
               disabled={submitting}
             >
               Cancel
