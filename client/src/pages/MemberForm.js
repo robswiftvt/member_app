@@ -28,9 +28,8 @@ const MemberForm = ({ isEdit = false }) => {
     if (isEdit && id) {
       fetchMember();
     }
-    if (user?.adminType !== 'Member Admin') {
-      fetchClubs();
-    }
+    // Always fetch clubs so we can display the club name as read-only
+    fetchClubs();
   }, []);
 
   const fetchMember = async () => {
@@ -206,26 +205,20 @@ const MemberForm = ({ isEdit = false }) => {
             />
           </div>
 
-          {user?.adminType !== 'Member Admin' && (
-            <div className="form-group">
-              <label htmlFor="club">Club *</label>
-              <select
-                id="club"
-                name="club"
-                value={formData.club}
-                onChange={handleChange}
-                required
-                disabled={submitting}
-              >
-                <option value="">Select Club</option>
-                {clubs.map((club) => (
-                  <option key={club._id} value={club._id}>
-                    {club.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
+          <div className="form-group">
+            <label htmlFor="club">Club *</label>
+            <input
+              id="club"
+              type="text"
+              name="club"
+              value={(() => {
+                const c = clubs.find((cl) => cl._id === formData.club);
+                return c ? c.name : '';
+              })()}
+              readOnly
+              disabled
+            />
+          </div>
 
           <div className="form-actions">
             <button
