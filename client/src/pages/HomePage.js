@@ -64,7 +64,18 @@ const HomePage = () => {
   };
 
   const columns = [
-    { key: 'name', label: 'Club Name' },
+    { 
+      key: 'name', 
+      label: 'Club Name',
+      render: (value, row) => (
+        <button 
+          onClick={() => navigate(`/club-overview?id=${row._id}`)}
+          className="link-button"
+        >
+          {value}
+        </button>
+      )
+    },
     { key: 'location', label: 'Location' },
     { 
       key: 'status', 

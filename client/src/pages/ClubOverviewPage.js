@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import apiCall from '../utils/apiCall';
 import DataGrid from '../components/DataGrid';
@@ -10,7 +10,9 @@ const ClubOverviewPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { id } = useParams();
-  const clubId = id || user?.clubId;
+  const [searchParams] = useSearchParams();
+  const queryId = searchParams.get('id');
+  const clubId = id || queryId || user?.clubId;
 
   const [club, setClub] = useState(null);
   const [members, setMembers] = useState([]);
