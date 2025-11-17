@@ -3,12 +3,6 @@ const bcrypt = require('bcryptjs');
 
 const adminSchema = new mongoose.Schema(
   {
-    username: {
-      type: String,
-      required: true,
-      unique: true,
-      trim: true,
-    },
     password: {
       type: String,
       required: true,
@@ -22,6 +16,7 @@ const adminSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Member',
       required: true,
+      unique: true,
     },
   },
   { timestamps: true }

@@ -7,29 +7,36 @@ const router = express.Router();
 // Login endpoint
 router.post('/login', async (req, res) => {
   try {
-    const { username, password } = req.body;
+    const { email, password } = req.body;
 
-    if (!username || !password) {
-      return res.status(400).json({ error: 'Username and password required' });
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Email and password required' });
     }
 
-    // Find admin by username
-    const admin = await Admin.findOne({ username }).populate('member');
+    // Find member by email first
+    const Member = require('../models/Member');
+    const member = await Member.findOne({ email: email.toLowerCase() });
+    if (!member) {
+      return res.status(401).json({ error: 'The Email and/or Password was not correct.' });
+    }
+
+    // Find admin associated with this member
+    const admin = await Admin.findOne({ member: member._id }).populate('member');
     if (!admin) {
-      return res.status(401).json({ error: 'The Username and/or Password was not correct.' });
+      return res.status(401).json({ error: 'The Email and/or Password was not correct.' });
     }
 
     // Verify password
     const isMatch = await admin.comparePassword(password);
     if (!isMatch) {
-      return res.status(401).json({ error: 'The Username and/or Password was not correct.' });
+      return res.status(401).json({ error: 'The Email and/or Password was not correct.' });
     }
 
     // Generate JWT token
     const token = jwt.sign(
       {
         adminId: admin._id,
-        username: admin.username,
+        email: admin.member.email,
         adminType: admin.adminType,
         memberId: admin.member._id,
         clubId: admin.member.club,
@@ -50,7 +57,7 @@ router.post('/login', async (req, res) => {
       redirectPath,
       admin: {
         id: admin._id,
-        username: admin.username,
+        email: admin.member.email,
         adminType: admin.adminType,
       },
     });

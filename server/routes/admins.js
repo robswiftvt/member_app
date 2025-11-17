@@ -55,7 +55,6 @@ router.post(
   authMiddleware,
   checkRole('System Admin'),
   [
-    body('username').trim().notEmpty().withMessage('Username required'),
     body('password')
       .isLength({ min: 6 })
       .withMessage('Password must be at least 6 characters'),
@@ -67,13 +66,7 @@ router.post(
   handleValidationErrors,
   async (req, res) => {
     try {
-      const { username, password, adminType, member } = req.body;
-
-      // Check if username already exists
-      const existingAdmin = await Admin.findOne({ username });
-      if (existingAdmin) {
-        return res.status(400).json({ error: 'Username already exists' });
-      }
+      const { password, adminType, member } = req.body;
 
       // Check if member exists
       const memberExists = await Member.findById(member);
@@ -88,7 +81,6 @@ router.post(
       }
 
       const admin = new Admin({
-        username,
         password,
         adminType,
         member,

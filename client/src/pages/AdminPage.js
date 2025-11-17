@@ -57,7 +57,6 @@ const AdminPage = () => {
   };
 
   const columns = [
-    { key: 'username', label: 'Username' },
     { key: 'adminType', label: 'Admin Type' },
     {
       key: 'member',
@@ -96,7 +95,7 @@ const AdminPage = () => {
       <ConfirmModal
         isOpen={deleteModal.isOpen}
         title="Remove Admin"
-        message={`Are you sure you want to remove admin access for ${deleteModal.admin?.username}? They will still be a member.`}
+        message={`Are you sure you want to remove admin access for ${deleteModal.admin?.member?.firstName} ${deleteModal.admin?.member?.lastName}? They will still be a member.`}
         confirmText="Yes, Remove"
         cancelText="Cancel"
         onConfirm={handleDeleteConfirm}

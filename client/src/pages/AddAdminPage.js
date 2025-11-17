@@ -6,7 +6,6 @@ import './AddAdminPage.css';
 const AddAdminPage = () => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
-    username: '',
     password: '',
     adminType: 'Club Admin',
     member: '',
@@ -53,7 +52,6 @@ const AddAdminPage = () => {
 
     try {
       const payload = {
-        username: formData.username,
         password: formData.password,
         adminType: formData.adminType,
         member: formData.member,
@@ -106,20 +104,6 @@ const AddAdminPage = () => {
                 </option>
               ))}
             </select>
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="username">Username *</label>
-            <input
-              id="username"
-              type="text"
-              name="username"
-              value={formData.username}
-              onChange={handleChange}
-              placeholder="Enter username"
-              required
-              disabled={submitting}
-            />
           </div>
 
           <div className="form-group">
