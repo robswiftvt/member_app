@@ -29,16 +29,11 @@ const ChangeMemberAdminModal = ({ isOpen, onClose, clubId, currentAdminMember, o
       const membersData = await res.json();
       setMembers(membersData);
 
-      // get existing admins to filter out
-      const adminsRes = await apiCall('/admins');
-      const admins = adminsRes.ok ? await adminsRes.json() : [];
-      const adminMemberIds = admins.map((a) => (a.member ? a.member._id : null)).filter(Boolean);
-
-      // Exclude existing admins except allow currentAdminMember
+      // Filter to members without admin roles (excluding current admin)
       const avail = membersData.filter((m) => {
         if (!m._id) return false;
         if (currentAdminMember && m._id === currentAdminMember._id) return false; // don't select current
-        return !adminMemberIds.includes(m._id);
+        return !m.adminType; // exclude members who already have an admin role
       });
 
       setAvailableMembers(avail);
@@ -63,7 +58,7 @@ const ChangeMemberAdminModal = ({ isOpen, onClose, clubId, currentAdminMember, o
 
     setSubmitting(true);
     try {
-      // 1) Create the new admin (Member Admin)
+      // 1) Create the new admin (Member Admin) - updates member with adminType and password
       const createRes = await apiCall('/admins', {
         method: 'POST',
         body: JSON.stringify({ member: selectedMember, password, adminType: 'Member Admin' }),
@@ -84,17 +79,10 @@ const ChangeMemberAdminModal = ({ isOpen, onClose, clubId, currentAdminMember, o
         throw new Error(data.error || 'Failed to update club');
       }
 
-      // 3) Remove previous member admin admin record (if present and different)
+      // 3) Remove previous member admin admin role (if present and different)
       if (currentAdminMember && currentAdminMember._id) {
-        // find admin record for the previous member
-        const adminsRes = await apiCall('/admins');
-        if (adminsRes.ok) {
-          const admins = await adminsRes.json();
-          const prevAdmin = admins.find((a) => a.member?._id === currentAdminMember._id);
-          if (prevAdmin) {
-            await apiCall(`/admins/${prevAdmin._id}`, { method: 'DELETE' });
-          }
-        }
+        // DELETE admin removes adminType and password from the member
+        await apiCall(`/admins/${currentAdminMember._id}`, { method: 'DELETE' });
       }
 
       onUpdated && onUpdated();

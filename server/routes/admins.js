@@ -1,6 +1,5 @@
 const express = require('express');
 const { body, validationResult } = require('express-validator');
-const Admin = require('../models/Admin');
 const Member = require('../models/Member');
 const authMiddleware = require('../middleware/authMiddleware');
 const checkRole = require('../middleware/checkRole');
@@ -19,9 +18,9 @@ const handleValidationErrors = (req, res, next) => {
 // GET all admins (System Admin only)
 router.get('/', authMiddleware, checkRole('System Admin'), async (req, res) => {
   try {
-    const admins = await Admin.find()
-      .populate('member', 'firstName lastName email club')
-      .select('-password');
+    const admins = await Member.find({ adminType: { $ne: null } })
+      .populate('club', 'name')
+      .select('-password -__v');
 
     res.json(admins);
   } catch (err) {
@@ -33,11 +32,11 @@ router.get('/', authMiddleware, checkRole('System Admin'), async (req, res) => {
 // GET single admin by ID (System Admin only)
 router.get('/:id', authMiddleware, checkRole('System Admin'), async (req, res) => {
   try {
-    const admin = await Admin.findById(req.params.id)
-      .populate('member', 'firstName lastName email club')
-      .select('-password');
+    const admin = await Member.findById(req.params.id)
+      .populate('club', 'name')
+      .select('-password -__v');
 
-    if (!admin) {
+    if (!admin || !admin.adminType) {
       return res.status(404).json({ error: 'Admin not found' });
     }
 
@@ -69,25 +68,22 @@ router.post(
       const { password, adminType, member } = req.body;
 
       // Check if member exists
-      const memberExists = await Member.findById(member);
-      if (!memberExists) {
+      const memberDoc = await Member.findById(member);
+      if (!memberDoc) {
         return res.status(400).json({ error: 'Member not found' });
       }
 
       // Check if member is already an admin
-      const existingMemberAdmin = await Admin.findOne({ member });
-      if (existingMemberAdmin) {
+      if (memberDoc.adminType) {
         return res.status(400).json({ error: 'Member already has an admin role' });
       }
 
-      const admin = new Admin({
-        password,
-        adminType,
-        member,
-      });
+      // Update member with admin fields
+      memberDoc.password = password;
+      memberDoc.adminType = adminType;
 
-      await admin.save();
-      const populatedAdmin = await admin.populate('member', 'firstName lastName email club');
+      await memberDoc.save();
+      const populatedAdmin = await memberDoc.populate('club', 'name');
       res.status(201).json({
         ...populatedAdmin.toObject(),
         password: undefined, // Never send password back
@@ -117,23 +113,23 @@ router.put(
   handleValidationErrors,
   async (req, res) => {
     try {
-      const admin = await Admin.findById(req.params.id);
-      if (!admin) {
+      const member = await Member.findById(req.params.id);
+      if (!member || !member.adminType) {
         return res.status(404).json({ error: 'Admin not found' });
       }
 
       const { adminType, password } = req.body;
 
       if (adminType !== undefined) {
-        admin.adminType = adminType;
+        member.adminType = adminType;
       }
 
       if (password !== undefined) {
-        admin.password = password;
+        member.password = password;
       }
 
-      await admin.save();
-      const populatedAdmin = await admin.populate('member', 'firstName lastName email club');
+      await member.save();
+      const populatedAdmin = await member.populate('club', 'name');
       res.json({
         ...populatedAdmin.toObject(),
         password: undefined,
@@ -145,13 +141,18 @@ router.put(
   }
 );
 
-// DELETE admin (System Admin only)
+// DELETE admin (System Admin only) - removes admin role from member but keeps member record
 router.delete('/:id', authMiddleware, checkRole('System Admin'), async (req, res) => {
   try {
-    const admin = await Admin.findByIdAndDelete(req.params.id);
-    if (!admin) {
+    const member = await Member.findById(req.params.id);
+    if (!member || !member.adminType) {
       return res.status(404).json({ error: 'Admin not found' });
     }
+
+    // Remove admin fields but keep member
+    member.adminType = null;
+    member.password = null;
+    await member.save();
 
     res.json({ message: 'Admin deleted successfully' });
   } catch (err) {

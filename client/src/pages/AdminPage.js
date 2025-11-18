@@ -61,14 +61,19 @@ const AdminPage = () => {
   const columns = [
     { key: 'adminType', label: 'Admin Type' },
     {
-      key: 'member',
-      label: 'Member',
-      render: (value) => value ? `${value.firstName} ${value.lastName}` : 'Unknown',
+      key: 'firstName',
+      label: 'First Name',
+      render: (value) => value || '-',
     },
     {
-      key: 'member',
+      key: 'lastName',
+      label: 'Last Name',
+      render: (value) => value || '-',
+    },
+    {
+      key: 'email',
       label: 'Email',
-      render: (value) => value?.email || '-',
+      render: (value) => value || '-',
     },
   ];
 
@@ -97,7 +102,7 @@ const AdminPage = () => {
       <ConfirmModal
         isOpen={deleteModal.isOpen}
         title="Remove Admin"
-        message={`Are you sure you want to remove admin access for ${deleteModal.admin?.member?.firstName} ${deleteModal.admin?.member?.lastName}? They will still be a member.`}
+        message={`Are you sure you want to remove admin access for ${deleteModal.admin?.firstName} ${deleteModal.admin?.lastName}? They will still be a member.`}
         confirmText="Yes, Remove"
         cancelText="Cancel"
         onConfirm={handleDeleteConfirm}

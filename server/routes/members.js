@@ -28,7 +28,7 @@ router.get('/', authMiddleware, async (req, res) => {
 
     const members = await Member.find(query)
       .populate('club', 'name')
-      .select('-__v');
+      .select('-__v -password');
 
     res.json(members);
   } catch (err) {
@@ -42,7 +42,7 @@ router.get('/:id', authMiddleware, async (req, res) => {
   try {
     const member = await Member.findById(req.params.id)
       .populate('club', 'name')
-      .select('-__v');
+      .select('-__v -password');
 
     if (!member) {
       return res.status(404).json({ error: 'Member not found' });
@@ -52,7 +52,7 @@ router.get('/:id', authMiddleware, async (req, res) => {
     const isAuthorized =
       req.user.adminType === 'System Admin' ||
       req.user.adminType === 'Club Admin' ||
-      (req.user.adminType === 'Member Admin' && member.club._id.toString() === req.user.clubId);
+      (req.user.adminType === 'Member Admin' && member.club && member.club._id.toString() === req.user.clubId);
 
     if (!isAuthorized) {
       return res.status(403).json({ error: 'Insufficient permissions' });
@@ -83,33 +83,35 @@ router.post(
       .optional()
       .isIn(['Full', 'Associate', 'Honorary', 'Inactive'])
       .withMessage('Invalid membership type'),
-    body('club').notEmpty().isMongoId().withMessage('Valid club ID required'),
+    body('club').optional().isMongoId().withMessage('Valid club ID'),
   ],
   handleValidationErrors,
   async (req, res) => {
     try {
       const { firstName, lastName, email, phone, address, membershipType, club } = req.body;
 
-      // Check authorization: System Admin, Club Admin, or Member Admin of this club
-      const isAuthorized =
-        req.user.adminType === 'System Admin' ||
-        req.user.adminType === 'Club Admin' ||
-        (req.user.adminType === 'Member Admin' && club === req.user.clubId);
+      // Authorization check if club is specified
+      if (club) {
+        const isAuthorized =
+          req.user.adminType === 'System Admin' ||
+          req.user.adminType === 'Club Admin' ||
+          (req.user.adminType === 'Member Admin' && club === req.user.clubId);
 
-      if (!isAuthorized) {
-        return res.status(403).json({ error: 'Insufficient permissions' });
+        if (!isAuthorized) {
+          return res.status(403).json({ error: 'Insufficient permissions' });
+        }
+
+        // Validate club exists
+        const clubExists = await Club.findById(club);
+        if (!clubExists) {
+          return res.status(400).json({ error: 'Club not found' });
+        }
       }
 
       // Check if email already exists
       const existingMember = await Member.findOne({ email });
       if (existingMember) {
         return res.status(400).json({ error: 'Email already exists' });
-      }
-
-      // Validate club exists
-      const clubExists = await Club.findById(club);
-      if (!clubExists) {
-        return res.status(400).json({ error: 'Club not found' });
       }
 
       const member = new Member({
@@ -119,7 +121,7 @@ router.post(
         phone: phone || '',
         address: address || '',
         membershipType: membershipType || 'Full',
-        club,
+        club: club || null,
       });
 
       await member.save();
@@ -151,6 +153,7 @@ router.put(
       .optional()
       .isIn(['Full', 'Associate', 'Honorary', 'Inactive'])
       .withMessage('Invalid membership type'),
+    body('club').optional().isMongoId().withMessage('Valid club ID'),
   ],
   handleValidationErrors,
   async (req, res) => {
@@ -164,13 +167,13 @@ router.put(
       const isAuthorized =
         req.user.adminType === 'System Admin' ||
         req.user.adminType === 'Club Admin' ||
-        (req.user.adminType === 'Member Admin' && member.club.toString() === req.user.clubId);
+        (req.user.adminType === 'Member Admin' && member.club && member.club.toString() === req.user.clubId);
 
       if (!isAuthorized) {
         return res.status(403).json({ error: 'Insufficient permissions' });
       }
 
-      const { firstName, lastName, email, phone, address, membershipType } = req.body;
+      const { firstName, lastName, email, phone, address, membershipType, club } = req.body;
 
       // Check if new email already exists (if email is being changed)
       if (email && email !== member.email) {
@@ -186,6 +189,7 @@ router.put(
       if (phone !== undefined) member.phone = phone;
       if (address !== undefined) member.address = address;
       if (membershipType !== undefined) member.membershipType = membershipType;
+      if (club !== undefined) member.club = club || null;
 
       await member.save();
       const populatedMember = await member.populate('club', 'name');
@@ -209,7 +213,7 @@ router.delete('/:id', authMiddleware, async (req, res) => {
     const isAuthorized =
       req.user.adminType === 'System Admin' ||
       req.user.adminType === 'Club Admin' ||
-      (req.user.adminType === 'Member Admin' && member.club.toString() === req.user.clubId);
+      (req.user.adminType === 'Member Admin' && member.club && member.club.toString() === req.user.clubId);
 
     if (!isAuthorized) {
       return res.status(403).json({ error: 'Insufficient permissions' });

@@ -25,13 +25,8 @@ const AddAdminPage = () => {
       if (!response.ok) throw new Error('Failed to fetch members');
       const allMembers = await response.json();
 
-      // Get all admins to filter them out
-      const adminsRes = await apiCall('/admins');
-      const admins = adminsRes.ok ? await adminsRes.json() : [];
-      const adminMemberIds = admins.map((a) => a.member._id);
-
-      // Filter to members not already admins
-      const nonAdminMembers = allMembers.filter((m) => !adminMemberIds.includes(m._id));
+      // Filter to members without an admin role
+      const nonAdminMembers = allMembers.filter((m) => !m.adminType);
       setMembers(nonAdminMembers);
     } catch (err) {
       setError(err.message);

@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const bcrypt = require('bcryptjs');
 
 const memberSchema = new mongoose.Schema(
   {
@@ -35,10 +36,38 @@ const memberSchema = new mongoose.Schema(
     club: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Club',
-      required: true,
+      required: false,
+    },
+    // Admin fields (null if member is not an admin)
+    password: {
+      type: String,
+      default: null,
+    },
+    adminType: {
+      type: String,
+      enum: ['System Admin', 'Club Admin', 'Member Admin'],
+      default: null,
     },
   },
   { timestamps: true }
 );
+
+// Hash password before saving (only if modified)
+memberSchema.pre('save', async function (next) {
+  if (!this.isModified('password') || !this.password) return next();
+  try {
+    const salt = await bcrypt.genSalt(10);
+    this.password = await bcrypt.hash(this.password, salt);
+    next();
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Method to compare passwords
+memberSchema.methods.comparePassword = async function (candidatePassword) {
+  if (!this.password) return false;
+  return await bcrypt.compare(candidatePassword, this.password);
+};
 
 module.exports = mongoose.model('Member', memberSchema);
