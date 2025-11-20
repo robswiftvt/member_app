@@ -81,11 +81,11 @@ const AdminPage = () => {
     <div className="page-container">
       <div className="page-header">
         <div>
-          <h1>Admin Administration</h1>
-          <p>This page allows you to add or remove System and Club administrators.  Removing an Administrator does not delete them as a club member.  It removes their ability to log into this site. Member Admins are managed on the Club page.</p>
+          <h1>Member Administration</h1>
+          <p>This page allows you to add or remove System and Club administrators. Removing an administrator does not delete the member record; it only revokes their ability to log into this site. Member Admins are managed on the Club page.</p>
         </div>
-        <button className="btn btn-primary" onClick={() => navigate('/admin/add')}>
-          + Add Administrator
+        <button className="btn btn-primary" onClick={() => navigate('/member/add')}>
+          + Add Member
         </button>
       </div>
 

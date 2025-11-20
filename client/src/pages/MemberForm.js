@@ -224,7 +224,7 @@ const MemberForm = ({ isEdit = false }) => {
             <button
               type="button"
               className="btn btn-cancel"
-              onClick={() => navigate(`/club-overview?id=${formData.club}`)}
+              onClick={() => navigate(-1)}
               disabled={submitting}
             >
               Cancel

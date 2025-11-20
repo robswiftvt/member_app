@@ -46,7 +46,9 @@ const memberSchema = new mongoose.Schema(
     adminType: {
       type: String,
       enum: ['System Admin', 'Club Admin', 'Member Admin'],
-      default: null,
+      // Store undefined when no admin type is set so enum validator is skipped
+      default: undefined,
+      set: (v) => (v === '' || v === null ? undefined : v),
     },
   },
   { timestamps: true }

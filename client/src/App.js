@@ -9,8 +9,8 @@ import ClubForm from './pages/ClubForm';
 import ClubOverviewPage from './pages/ClubOverviewPage';
 import MemberForm from './pages/MemberForm';
 import AdminPage from './pages/AdminPage';
-import AddAdminPage from './pages/AddAdminPage';
 import UnauthorizedPage from './pages/UnauthorizedPage';
+
 import './App.css';
 
 const AppContent = () => {
@@ -101,17 +101,8 @@ const AppContent = () => {
         <Route 
           path="/admins" 
           element={
-            <ProtectedRoute requiredRoles={['System Admin']}>
+            <ProtectedRoute requiredRoles={["System Admin"]}>
               <AdminPage />
-            </ProtectedRoute>
-          } 
-        />
-
-        <Route 
-          path="/admin/add" 
-          element={
-            <ProtectedRoute requiredRoles={['System Admin']}>
-              <AddAdminPage />
             </ProtectedRoute>
           } 
         />
