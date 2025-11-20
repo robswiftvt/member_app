@@ -1,42 +1,8 @@
-const mongoose = require('mongoose');
-const bcrypt = require('bcryptjs');
-
-const adminSchema = new mongoose.Schema(
-  {
-    password: {
-      type: String,
-      required: true,
-    },
-    adminType: {
-      type: String,
-      enum: ['System Admin', 'Club Admin', 'Member Admin'],
-      required: true,
-    },
-    member: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Member',
-      required: true,
-      unique: true,
-    },
-  },
-  { timestamps: true }
-);
-
-// Hash password before saving
-adminSchema.pre('save', async function (next) {
-  if (!this.isModified('password')) return next();
-  try {
-    const salt = await bcrypt.genSalt(10);
-    this.password = await bcrypt.hash(this.password, salt);
-    next();
-  } catch (err) {
-    next(err);
-  }
-});
-
-// Method to compare passwords
-adminSchema.methods.comparePassword = async function (candidatePassword) {
-  return await bcrypt.compare(candidatePassword, this.password);
-};
-
-module.exports = mongoose.model('Admin', adminSchema);
+/*
+  Legacy Admin model shim.
+  The legacy Admin schema has been archived to `Admin.legacy.js`.
+  Keep this shim so any scripts still requiring `models/Admin` continue to work,
+  but prefer importing `models/Admin.legacy` explicitly for clarity.
+*/
+console.warn('Warning: using legacy Admin model shim (models/Admin.js). Use models/Admin.legacy.js instead.');
+module.exports = require('./Admin.legacy');

@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 
 const Club = require('./models/Club');
 const Member = require('./models/Member');
-const Admin = require('./models/Admin');
+const Admin = require('./models/Admin.legacy');
 
 async function main() {
   try {

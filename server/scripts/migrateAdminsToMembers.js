@@ -10,7 +10,7 @@
 require('dotenv').config();
 const mongoose = require('mongoose');
 const Member = require('./models/Member');
-const Admin = require('./models/Admin');
+const Admin = require('./models/Admin.legacy');
 
 const migrateAdminsToMembers = async () => {
   try {
