@@ -102,7 +102,7 @@ const HomePage = () => {
           </button>
           {user?.adminType === 'System Admin' && (
             <button className="btn btn-secondary" onClick={() => navigate('/admins')}>
-              Admin Administration
+              Member Administration
             </button>
           )}
         </div>

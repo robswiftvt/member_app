@@ -60,7 +60,7 @@ const DataGrid = ({
                     )}
                     {onDelete && (
                       <button className="action-btn delete-btn" onClick={() => onDelete(row)}>
-                        Remove
+                        Delete
                       </button>
                     )}
                   </td>

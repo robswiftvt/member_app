@@ -7,26 +7,24 @@ import './AdminPage.css';
 
 const AdminPage = () => {
   const navigate = useNavigate();
-  const [admins, setAdmins] = useState([]);
+  const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [deleteModal, setDeleteModal] = useState({ isOpen: false, admin: null });
   const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
-    fetchAdmins();
+    fetchMembers();
   }, []);
 
-  const fetchAdmins = async () => {
+  const fetchMembers = async () => {
     setLoading(true);
     setError('');
     try {
-      const response = await apiCall('/admins');
-      if (!response.ok) throw new Error('Failed to fetch admins');
+      const response = await apiCall('/members');
+      if (!response.ok) throw new Error('Failed to fetch members');
       const data = await response.json();
-      // Filter out Member Admins; only show System Admin and Club Admin
-      const filtered = data.filter((admin) => admin.adminType !== 'Member Admin');
-      setAdmins(filtered);
+      setMembers(data);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -34,8 +32,13 @@ const AdminPage = () => {
     }
   };
 
-  const handleDeleteClick = (admin) => {
-    setDeleteModal({ isOpen: true, admin });
+  const handleDeleteClick = (member) => {
+    setDeleteModal({ isOpen: true, admin: member });
+  };
+
+  const handleEditClick = (member) => {
+    if (!member || !member._id) return;
+    navigate(`/member/edit/${member._id}`);
   };
 
   const handleDeleteConfirm = async () => {
@@ -43,13 +46,14 @@ const AdminPage = () => {
 
     setDeleting(true);
     try {
-      const response = await apiCall(`/admins/${deleteModal.admin._id}`, {
+      const response = await apiCall(`/members/${deleteModal.admin._id}`, {
         method: 'DELETE',
       });
 
-      if (!response.ok) throw new Error('Failed to delete admin');
+      if (!response.ok) throw new Error('Failed to delete member');
 
-      setAdmins(admins.filter((a) => a._id !== deleteModal.admin._id));
+      // Remove member from local state
+      setMembers(members.filter((m) => m._id !== deleteModal.admin._id));
       setDeleteModal({ isOpen: false, admin: null });
     } catch (err) {
       setError(err.message);
@@ -59,22 +63,12 @@ const AdminPage = () => {
   };
 
   const columns = [
-    { key: 'adminType', label: 'Admin Type' },
-    {
-      key: 'firstName',
-      label: 'First Name',
-      render: (value) => value || '-',
-    },
-    {
-      key: 'lastName',
-      label: 'Last Name',
-      render: (value) => value || '-',
-    },
-    {
-      key: 'email',
-      label: 'Email',
-      render: (value) => value || '-',
-    },
+    { key: 'firstName', label: 'First Name', render: (v) => v || '-' },
+    { key: 'lastName', label: 'Last Name', render: (v) => v || '-' },
+    { key: 'email', label: 'Email', render: (v) => v || '-' },
+    { key: 'club', label: 'Club', render: (v) => (v && v.name ? v.name : '-') },
+    { key: 'membershipType', label: 'Member Type', render: (v) => v || '-' },
+    { key: 'adminType', label: 'Admin Type', render: (v) => v || '-' },
   ];
 
   return (
@@ -93,17 +87,18 @@ const AdminPage = () => {
 
       <DataGrid
         columns={columns}
-        rows={admins}
+        rows={members}
         loading={loading}
+        onEdit={handleEditClick}
         onDelete={handleDeleteClick}
         pageSize={10}
       />
 
       <ConfirmModal
         isOpen={deleteModal.isOpen}
-        title="Remove Admin"
-        message={`Are you sure you want to remove admin access for ${deleteModal.admin?.firstName} ${deleteModal.admin?.lastName}? They will still be a member.`}
-        confirmText="Yes, Remove"
+        title="Delete Member"
+        message={`Are you sure you want to delete ${deleteModal.admin?.firstName} ${deleteModal.admin?.lastName}? This action cannot be undone.`}
+        confirmText="Yes, Delete"
         cancelText="Cancel"
         onConfirm={handleDeleteConfirm}
         onCancel={() => setDeleteModal({ isOpen: false, admin: null })}

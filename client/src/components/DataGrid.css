@@ -44,7 +44,9 @@
 .actions-cell {
   display: flex;
   gap: 0.5rem;
-  flex-wrap: wrap;
+  flex-wrap: nowrap; /* keep action buttons on a single line */
+  align-items: center;
+  white-space: nowrap;
 }
 
 .action-btn {
@@ -56,6 +58,8 @@
   font-weight: 500;
   transition: all 0.2s;
 }
+
+.action-btn { white-space: nowrap; }
 
 .edit-btn {
   background-color: #3498db;
