@@ -78,7 +78,19 @@ router.post(
       .withMessage('Valid email required')
       .normalizeEmail(),
     body('phone').optional().trim(),
-    body('address').optional().trim(),
+    body('streetAddress').optional().trim(),
+    body('address2').optional().trim(),
+    body('city').optional().trim(),
+    body('state').optional().trim(),
+    body('zip').optional().trim(),
+    body('prefix').optional().trim(),
+    body('middleName').optional().trim(),
+    body('badgeNickname').optional().trim(),
+    body('suffix').optional().trim(),
+    body('phoneType').optional().isIn(['Home', 'Cell', 'Work']).withMessage('Invalid phone type'),
+    body('occupation').optional().trim(),
+    body('employer').optional().trim(),
+    body('deceased').optional().toBoolean(),
     body('membershipType')
       .optional()
       .isIn(['Full', 'Associate', 'Honorary', 'Inactive'])
@@ -88,7 +100,27 @@ router.post(
   handleValidationErrors,
   async (req, res) => {
     try {
-      const { firstName, lastName, email, phone, address, membershipType, club } = req.body;
+      const {
+        firstName,
+        lastName,
+        email,
+        phone,
+        streetAddress,
+        address2,
+        city,
+        state,
+        zip,
+        prefix,
+        middleName,
+        badgeNickname,
+        suffix,
+        phoneType,
+        occupation,
+        employer,
+        deceased,
+        membershipType,
+        club,
+      } = req.body;
 
       // Authorization check if club is specified
       if (club) {
@@ -119,7 +151,19 @@ router.post(
         lastName,
         email,
         phone: phone || '',
-        address: address || '',
+        streetAddress: streetAddress || '',
+        address2: address2 || '',
+        city: city || '',
+        state: state || '',
+        zip: zip || '',
+        prefix: prefix || '',
+        middleName: middleName || '',
+        badgeNickname: badgeNickname || '',
+        suffix: suffix || '',
+        phoneType: phoneType || undefined,
+        occupation: occupation || '',
+        employer: employer || '',
+        deceased: deceased || false,
         membershipType: membershipType || 'Full',
         club: club || null,
       });
@@ -148,7 +192,19 @@ router.put(
       .withMessage('Valid email required')
       .normalizeEmail(),
     body('phone').optional().trim(),
-    body('address').optional().trim(),
+    body('streetAddress').optional().trim(),
+    body('address2').optional().trim(),
+    body('city').optional().trim(),
+    body('state').optional().trim(),
+    body('zip').optional().trim(),
+    body('prefix').optional().trim(),
+    body('middleName').optional().trim(),
+    body('badgeNickname').optional().trim(),
+    body('suffix').optional().trim(),
+    body('phoneType').optional().isIn(['Home', 'Cell', 'Work']).withMessage('Invalid phone type'),
+    body('occupation').optional().trim(),
+    body('employer').optional().trim(),
+    body('deceased').optional().toBoolean(),
     body('membershipType')
       .optional()
       .isIn(['Full', 'Associate', 'Honorary', 'Inactive'])
@@ -173,7 +229,27 @@ router.put(
         return res.status(403).json({ error: 'Insufficient permissions' });
       }
 
-      const { firstName, lastName, email, phone, address, membershipType, club } = req.body;
+      const {
+        firstName,
+        lastName,
+        email,
+        phone,
+        streetAddress,
+        address2,
+        city,
+        state,
+        zip,
+        prefix,
+        middleName,
+        badgeNickname,
+        suffix,
+        phoneType,
+        occupation,
+        employer,
+        deceased,
+        membershipType,
+        club,
+      } = req.body;
 
       // Check if new email already exists (if email is being changed)
       if (email && email !== member.email) {
@@ -187,7 +263,19 @@ router.put(
       if (firstName !== undefined) member.firstName = firstName;
       if (lastName !== undefined) member.lastName = lastName;
       if (phone !== undefined) member.phone = phone;
-      if (address !== undefined) member.address = address;
+      if (streetAddress !== undefined) member.streetAddress = streetAddress;
+      if (address2 !== undefined) member.address2 = address2;
+      if (city !== undefined) member.city = city;
+      if (state !== undefined) member.state = state;
+      if (zip !== undefined) member.zip = zip;
+      if (prefix !== undefined) member.prefix = prefix;
+      if (middleName !== undefined) member.middleName = middleName;
+      if (badgeNickname !== undefined) member.badgeNickname = badgeNickname;
+      if (suffix !== undefined) member.suffix = suffix;
+      if (phoneType !== undefined) member.phoneType = phoneType;
+      if (occupation !== undefined) member.occupation = occupation;
+      if (employer !== undefined) member.employer = employer;
+      if (deceased !== undefined) member.deceased = deceased;
       if (membershipType !== undefined) member.membershipType = membershipType;
       if (club !== undefined) member.club = club || null;
 

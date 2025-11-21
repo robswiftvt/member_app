@@ -31,6 +31,30 @@
   font-size: 0.95rem;
 }
 
+.form-section {
+  border: 1px solid #ecf0f1;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+  border-radius: 6px;
+}
+
+.form-section legend {
+  font-weight: 700;
+  padding: 0 0.5rem;
+}
+
+.checkbox-inline {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.large-checkbox {
+  width: 26px;
+  height: 26px;
+  transform: none;
+}
+
 .form-group input,
 .form-group select,
 .form-group textarea {

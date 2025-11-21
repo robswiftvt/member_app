@@ -13,10 +13,12 @@ const memberSchema = new mongoose.Schema(
       required: true,
       trim: true,
     },
-    address: {
-      type: String,
-      trim: true,
-    },
+    // Address fields (top-level for easier mapping from request body)
+    streetAddress: { type: String, trim: true },
+    address2: { type: String, trim: true },
+    city: { type: String, trim: true },
+    state: { type: String, trim: true },
+    zip: { type: String, trim: true },
     email: {
       type: String,
       required: true,
@@ -27,6 +29,39 @@ const memberSchema = new mongoose.Schema(
     phone: {
       type: String,
       trim: true,
+    },
+    // Additional personal/contact fields
+    prefix: {
+      type: String,
+      trim: true,
+    },
+    middleName: {
+      type: String,
+      trim: true,
+    },
+    badgeNickname: {
+      type: String,
+      trim: true,
+    },
+    suffix: {
+      type: String,
+      trim: true,
+    },
+    phoneType: {
+      type: String,
+      enum: ['Home', 'Cell', 'Work'],
+    },
+    occupation: {
+      type: String,
+      trim: true,
+    },
+    employer: {
+      type: String,
+      trim: true,
+    },
+    deceased: {
+      type: Boolean,
+      default: false,
     },
     membershipType: {
       type: String,
