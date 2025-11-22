@@ -22,6 +22,7 @@ const ClubOverviewPage = () => {
   const [deleteModal, setDeleteModal] = useState({ isOpen: false, member: null });
   const [deleting, setDeleting] = useState(false);
   const [changeAdminModalOpen, setChangeAdminModalOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState('members');
 
   useEffect(() => {
     if (clubId) {
@@ -152,21 +153,39 @@ const ClubOverviewPage = () => {
 
       {error && <div className="error-banner">{error}</div>}
 
-      <div className="members-section">
-        <div className="members-header">
-          <h2>Members ({members.length})</h2>
-          <button className="btn btn-primary" onClick={() => navigate(`/member/add?clubId=${clubId}`)}>
-            + Add Member
-          </button>
+      <div className="club-tabs">
+        <div className="tab-list">
+          <button className={`tab ${activeTab === 'members' ? 'active' : ''}`} onClick={() => setActiveTab('members')}>Members</button>
+          <button className={`tab ${activeTab === 'payments' ? 'active' : ''}`} onClick={() => setActiveTab('payments')}>Club Payments</button>
         </div>
 
-        <DataGrid
-          columns={memberColumns}
-          rows={members}
-          onEdit={handleEditMember}
-          onDelete={handleDeleteMember}
-          pageSize={10}
-        />
+        {activeTab === 'members' && (
+          <div className="members-section">
+            <div className="members-header">
+              <h2>Members ({members.length})</h2>
+              <button className="btn btn-primary" onClick={() => navigate(`/member/add?clubId=${clubId}`)}>
+                + Add Member
+              </button>
+            </div>
+
+            <DataGrid
+              columns={memberColumns}
+              rows={members}
+              onEdit={handleEditMember}
+              onDelete={handleDeleteMember}
+              pageSize={10}
+            />
+          </div>
+        )}
+
+        {activeTab === 'payments' && (
+          <div className="payments-section">
+            <div className="members-header">
+              <h2>Club Payments</h2>
+            </div>
+            <div className="placeholder">Club Payments UI will be added here.</div>
+          </div>
+        )}
       </div>
 
       <ConfirmModal
