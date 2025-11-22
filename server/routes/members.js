@@ -7,6 +7,15 @@ const checkRole = require('../middleware/checkRole');
 
 const router = express.Router();
 
+// Helper to compute Dec 31 ISO date string according to rule:
+// before Oct 30 -> Dec 31 of current year; on/after Oct 30 -> Dec 31 of next year
+const computeDec31Iso = (refDate = new Date(), cutoffMonth = parseInt(process.env.NEW_MEMBER_CUTOFF_MONTH || '10', 10), cutoffDay = parseInt(process.env.NEW_MEMBER_CUTOFF_DAY || '30', 10)) => {
+  const year = refDate.getFullYear();
+  const cutoff = new Date(year, cutoffMonth - 1, cutoffDay);
+  const decYear = refDate < cutoff ? year : year + 1;
+  return `${decYear}-12-31`;
+};
+
 // Middleware to check validation errors
 const handleValidationErrors = (req, res, next) => {
   const errors = validationResult(req);
@@ -122,6 +131,17 @@ router.post(
         club,
       } = req.body;
 
+      // Validate membershipExpiration if provided: must match computed Dec 31 option
+      const { membershipExpiration } = req.body;
+      const decIso = computeDec31Iso();
+      if (membershipExpiration) {
+        const provided = String(membershipExpiration).split('T')[0];
+        if (provided !== decIso) {
+          // For creation we only accept the computed Dec 31 option
+          return res.status(400).json({ error: 'membershipExpiration must be the allowed Dec 31 date' });
+        }
+      }
+
       // Authorization check if club is specified
       if (club) {
         const isAuthorized =
@@ -165,6 +185,7 @@ router.post(
         employer: employer || '',
         deceased: deceased || false,
         membershipType: membershipType || 'Full',
+        membershipExpiration: membershipExpiration ? (function () { const p = String(membershipExpiration).split('T')[0]; const [y,m,d] = p.split('-'); return new Date(parseInt(y,10), parseInt(m,10)-1, parseInt(d,10)); })() : undefined,
         club: club || null,
       });
 
@@ -248,8 +269,26 @@ router.put(
         employer,
         deceased,
         membershipType,
+        membershipExpiration,
         club,
       } = req.body;
+
+      // Validate membershipExpiration if provided: cannot be cleared, and must match computed Dec 31 or existing expiration
+      if (membershipExpiration !== undefined) {
+        // Disallow clearing (empty string or null)
+        if (membershipExpiration === null || membershipExpiration === '') {
+          return res.status(400).json({ error: 'membershipExpiration cannot be cleared' });
+        }
+
+        const decIso = computeDec31Iso();
+        const existing = member.membershipExpiration ? String(member.membershipExpiration).split('T')[0] : null;
+        const provided = membershipExpiration ? String(membershipExpiration).split('T')[0] : null;
+        const allowed = new Set([decIso]);
+        if (existing) allowed.add(existing);
+        if (provided && !allowed.has(provided)) {
+          return res.status(400).json({ error: 'membershipExpiration must be either the existing expiration or the allowed Dec 31 date' });
+        }
+      }
 
       // Check if new email already exists (if email is being changed)
       if (email && email !== member.email) {
@@ -277,6 +316,12 @@ router.put(
       if (employer !== undefined) member.employer = employer;
       if (deceased !== undefined) member.deceased = deceased;
       if (membershipType !== undefined) member.membershipType = membershipType;
+      if (membershipExpiration !== undefined) {
+        // membershipExpiration cannot be cleared (already validated). Store as local-date at midnight.
+        const p = String(membershipExpiration).split('T')[0];
+        const [y,m,d] = p.split('-');
+        member.membershipExpiration = new Date(parseInt(y,10), parseInt(m,10)-1, parseInt(d,10));
+      }
       if (club !== undefined) member.club = club || null;
 
       await member.save();

@@ -19,6 +19,8 @@ const ClubOverviewPage = () => {
   const [club, setClub] = useState(null);
   const [members, setMembers] = useState([]);
   const [payments, setPayments] = useState([]);
+  const [selectedClubPayment, setSelectedClubPayment] = useState(null);
+  const [unpaidMembers, setUnpaidMembers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [deleteModal, setDeleteModal] = useState({ isOpen: false, member: null });
@@ -208,9 +210,56 @@ const ClubOverviewPage = () => {
               </button>
             </div>
 
-            <div style={{ marginTop: '1rem' }}>
-              <DataGrid columns={paymentColumns} rows={payments} pageSize={10} />
-            </div>
+              <div style={{ marginTop: '1rem' }}>
+                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginBottom: '0.75rem' }}>
+                  <label style={{ fontWeight: 600 }}>Select Club Payment:</label>
+                  <select value={selectedClubPayment ? selectedClubPayment._id : ''} onChange={(e) => {
+                    const p = payments.find((x) => x._id === e.target.value);
+                    setSelectedClubPayment(p || null);
+                  }}>
+                    <option value="">(none)</option>
+                    {payments.map((p) => (
+                      <option key={p._id} value={p._id}>{p.paymentId} — {p.clubYear} — ${p.clubFeeAmount}</option>
+                    ))}
+                  </select>
+                  {selectedClubPayment && (
+                    <button className="btn btn-secondary" onClick={async () => {
+                      // fetch unpaid members for this clubYear
+                      try {
+                        const res = await apiCall(`/member-payments/unpaid?clubId=${clubId}&clubYear=${selectedClubPayment.clubYear}`);
+                        if (!res.ok) throw new Error('Failed to fetch unpaid members');
+                        const list = await res.json();
+                        setUnpaidMembers(list);
+                      } catch (err) {
+                        setError(err.message || err);
+                      }
+                    }}>Show Unpaid Members</button>
+                  )}
+                </div>
+
+                <DataGrid columns={paymentColumns} rows={payments} pageSize={10} />
+
+                {unpaidMembers.length > 0 && (
+                  <div style={{ marginTop: '1.5rem' }}>
+                    <h3>Unpaid Members ({unpaidMembers.length})</h3>
+                    <DataGrid
+                      columns={[
+                        { key: 'firstName', label: 'First Name' },
+                        { key: 'lastName', label: 'Last Name' },
+                        { key: 'email', label: 'Email' },
+                        { key: 'membershipExpiration', label: 'Expiration', render: (v) => {
+                          if (!v) return '';
+                          const iso = String(v).split('T')[0];
+                          const [y,m,d] = iso.split('-');
+                          return `${m}/${d}/${y}`;
+                        } },
+                      ]}
+                      rows={unpaidMembers}
+                      pageSize={10}
+                    />
+                  </div>
+                )}
+              </div>
           </div>
         )}
       </div>

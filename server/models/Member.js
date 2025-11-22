@@ -68,6 +68,9 @@ const memberSchema = new mongoose.Schema(
       enum: ['Full', 'Associate', 'Honorary', 'Inactive'],
       default: 'Full',
     },
+    membershipExpiration: {
+      type: Date,
+    },
     club: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Club',

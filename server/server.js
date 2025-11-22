@@ -21,10 +21,14 @@ const clubRoutes = require('./routes/clubs');
 const memberRoutes = require('./routes/members');
 const adminRoutes = require('./routes/admins');
 const paymentRoutes = require('./routes/payments');
+const memberPaymentRoutes = require('./routes/memberPayments');
+const configRoutes = require('./routes/config');
 app.use('/api/clubs', clubRoutes);
 app.use('/api/members', memberRoutes);
 app.use('/api/admins', adminRoutes);
 app.use('/api/payments', paymentRoutes);
+app.use('/api/member-payments', memberPaymentRoutes);
+app.use('/api/config', configRoutes);
 
 // Status route to report server + MongoDB connection state
 app.get('/api/status', (req, res) => {
