@@ -7,6 +7,7 @@ import LoginPage from './pages/LoginPage';
 import HomePage from './pages/HomePage';
 import ClubForm from './pages/ClubForm';
 import ClubOverviewPage from './pages/ClubOverviewPage';
+import NewPaymentPage from './pages/NewPaymentPage';
 import MemberForm from './pages/MemberForm';
 import AdminPage from './pages/AdminPage';
 import UnauthorizedPage from './pages/UnauthorizedPage';
@@ -76,6 +77,15 @@ const AppContent = () => {
               <ClubOverviewPage />
             </ProtectedRoute>
           } 
+        />
+
+        <Route 
+          path="/payments/new" 
+          element={
+            <ProtectedRoute requiredRoles={['System Admin', 'Club Admin']}>
+              <NewPaymentPage />
+            </ProtectedRoute>
+          }
         />
 
         {/* Member Management Pages */}

@@ -14,9 +14,11 @@ const ClubOverviewPage = () => {
   const [searchParams] = useSearchParams();
   const queryId = searchParams.get('id');
   const clubId = id || queryId || user?.clubId;
+  const queryTab = searchParams.get('tab');
 
   const [club, setClub] = useState(null);
   const [members, setMembers] = useState([]);
+  const [payments, setPayments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [deleteModal, setDeleteModal] = useState({ isOpen: false, member: null });
@@ -28,6 +30,7 @@ const ClubOverviewPage = () => {
     if (clubId) {
       fetchClubAndMembers();
     }
+    if (queryTab) setActiveTab(queryTab);
   }, [clubId]);
 
   const fetchClubAndMembers = async () => {
@@ -43,6 +46,16 @@ const ClubOverviewPage = () => {
       if (!membersRes.ok) throw new Error('Failed to fetch members');
       const membersData = await membersRes.json();
       setMembers(membersData.filter((m) => m.club._id === clubId));
+      // fetch payments for this club as well
+      try {
+        const paymentsRes = await apiCall(`/payments?clubId=${clubId}`);
+        if (paymentsRes && paymentsRes.ok) {
+          const paymentsData = await paymentsRes.json();
+          setPayments(paymentsData);
+        }
+      } catch (err) {
+        console.warn('Failed to fetch payments:', err.message || err);
+      }
     } catch (err) {
       setError(err.message);
     } finally {
@@ -99,6 +112,14 @@ const ClubOverviewPage = () => {
       label: 'Membership Type',
       render: (value) => <span className={`badge ${value.toLowerCase()}`}>{value}</span>,
     },
+  ];
+
+  const paymentColumns = [
+    { key: 'paymentId', label: 'Payment ID' },
+    { key: 'status', label: 'Status' },
+    { key: 'clubFeeAmount', label: 'Amount', render: (v) => (v || v === 0 ? `$${Number(v).toFixed(2)}` : '') },
+    { key: 'date', label: 'Date', render: (v) => (v ? new Date(v).toLocaleDateString() : '') },
+    { key: 'clubYear', label: 'Year' },
   ];
 
   return (
@@ -182,8 +203,14 @@ const ClubOverviewPage = () => {
           <div className="payments-section">
             <div className="members-header">
               <h2>Club Payments</h2>
+              <button className="btn btn-primary" onClick={() => navigate(`/payments/new?clubId=${clubId}`)}>
+                + New Payment
+              </button>
             </div>
-            <div className="placeholder">Club Payments UI will be added here.</div>
+
+            <div style={{ marginTop: '1rem' }}>
+              <DataGrid columns={paymentColumns} rows={payments} pageSize={10} />
+            </div>
           </div>
         )}
       </div>

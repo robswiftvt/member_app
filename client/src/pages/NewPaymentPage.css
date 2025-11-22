@@ -1,0 +1,11 @@
+.form-container {
+  max-width: 720px;
+}
+
+.form-card {
+  padding: 1.5rem;
+}
+
+.error-banner {
+  margin-bottom: 1rem;
+}
