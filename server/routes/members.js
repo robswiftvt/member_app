@@ -82,6 +82,7 @@ router.post(
     body('firstName').trim().notEmpty().withMessage('First name required'),
     body('lastName').trim().notEmpty().withMessage('Last name required'),
     body('email')
+      .optional()
       .trim()
       .isEmail()
       .withMessage('Valid email required')
@@ -160,10 +161,12 @@ router.post(
         }
       }
 
-      // Check if email already exists
-      const existingMember = await Member.findOne({ email });
-      if (existingMember) {
-        return res.status(400).json({ error: 'Email already exists' });
+      // Check if email already exists (only if email provided)
+      if (email) {
+        const existingMember = await Member.findOne({ email });
+        if (existingMember) {
+          return res.status(400).json({ error: 'Email already exists' });
+        }
       }
 
       const member = new Member({

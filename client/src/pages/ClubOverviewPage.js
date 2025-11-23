@@ -258,9 +258,47 @@ const ClubOverviewPage = () => {
           <div className="members-section">
             <div className="members-header">
               <h2>Members ({members.length})</h2>
-              <button className="btn btn-primary" onClick={() => navigate(`/member/add?clubId=${clubId}`)}>
-                + Add Member
-              </button>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <button className="btn btn-primary" onClick={() => navigate(`/member/add?clubId=${clubId}`)}>
+                    + Add Member
+                  </button>
+                  <div>
+                    <button className="btn btn-secondary" onClick={() => document.getElementById('import-xls-input')?.click()}>
+                      Import from XLS
+                    </button>
+                    <input id="import-xls-input" type="file" accept=".xlsx,.xls" style={{ display: 'none' }} onChange={async (e) => {
+                      const f = e.target.files?.[0];
+                      if (!f) return;
+                      // simple client-side validation
+                      const token = localStorage.getItem('token');
+                      const form = new FormData();
+                      form.append('file', f);
+                      try {
+                        const res = await fetch(`/api/uploads/nfrw_import?clubId=${encodeURIComponent(clubId)}`, {
+                          method: 'POST',
+                          headers: token ? { Authorization: `Bearer ${token}` } : {},
+                          body: form,
+                        });
+                        const data = await res.json().catch(() => ({}));
+                        if (!res.ok) {
+                          const serverMsg = data?.error || data?.message || JSON.stringify(data) || res.statusText;
+                          console.error('Upload failed', res.status, serverMsg, data);
+                          setError(`Upload failed: ${res.status} ${serverMsg}`);
+                        } else {
+                          // refresh club and members list
+                          await fetchClubAndMembers();
+                          // clear file input and any prior errors
+                          e.target.value = '';
+                          setError('');
+                          console.log('Upload successful', data);
+                        }
+                      } catch (err) {
+                        console.error('Upload exception', err);
+                        setError(`Upload error: ${err.message}`);
+                      }
+                    }} />
+                  </div>
+                </div>
             </div>
 
             <DataGrid

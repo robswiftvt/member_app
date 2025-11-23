@@ -21,14 +21,17 @@ const memberSchema = new mongoose.Schema(
     zip: { type: String, trim: true },
     email: {
       type: String,
-      required: true,
-      unique: true,
       lowercase: true,
       trim: true,
     },
     phone: {
       type: String,
       trim: true,
+    },
+    phoneNormalized: {
+      type: String,
+      trim: true,
+      index: true,
     },
     // Additional personal/contact fields
     prefix: {
@@ -102,6 +105,21 @@ memberSchema.pre('save', async function (next) {
   } catch (err) {
     next(err);
   }
+});
+
+// Normalize phone number to digits-only for easier matching
+memberSchema.pre('save', function (next) {
+  if (this.phone) {
+    try {
+      const digits = String(this.phone).replace(/\D/g, '');
+      this.phoneNormalized = digits || undefined;
+    } catch (err) {
+      this.phoneNormalized = undefined;
+    }
+  } else {
+    this.phoneNormalized = undefined;
+  }
+  next();
 });
 
 // Method to compare passwords
