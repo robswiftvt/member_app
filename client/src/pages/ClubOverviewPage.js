@@ -49,7 +49,7 @@ const ClubOverviewPage = () => {
       const membersRes = await apiCall(`/members`);
       if (!membersRes.ok) throw new Error('Failed to fetch members');
       const membersData = await membersRes.json();
-      setMembers(membersData.filter((m) => m.club._id === clubId));
+      setMembers(membersData.filter((m) => m.club && m.club._id === clubId));
       // fetch payments for this club as well
       try {
         const paymentsRes = await apiCall(`/payments?clubId=${clubId}`);
