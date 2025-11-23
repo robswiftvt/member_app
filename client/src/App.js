@@ -8,6 +8,7 @@ import HomePage from './pages/HomePage';
 import ClubForm from './pages/ClubForm';
 import ClubOverviewPage from './pages/ClubOverviewPage';
 import NewPaymentPage from './pages/NewPaymentPage2';
+import PaymentOverviewPage from './pages/PaymentOverviewPage';
 import MemberForm from './pages/MemberForm';
 import AdminPage from './pages/AdminPage';
 import UnauthorizedPage from './pages/UnauthorizedPage';
@@ -84,6 +85,14 @@ const AppContent = () => {
           element={
             <ProtectedRoute requiredRoles={['System Admin', 'Club Admin']}>
               <NewPaymentPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route 
+          path="/payments/view/:id"
+          element={
+            <ProtectedRoute requiredRoles={['System Admin', 'Club Admin']}>
+              <PaymentOverviewPage />
             </ProtectedRoute>
           }
         />

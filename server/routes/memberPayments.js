@@ -16,9 +16,10 @@ const handleValidationErrors = (req, res, next) => {
 // GET member payments for a club
 router.get('/', authMiddleware, async (req, res) => {
   try {
-    const { clubId } = req.query;
+    const { clubId, clubPayment } = req.query;
     const query = {};
     if (clubId) query.club = clubId;
+    if (clubPayment) query.clubPayment = clubPayment;
     // include membershipType on populated member so clients can show the type in member payment lists
     const list = await MemberPayment.find(query)
       .populate('member', 'firstName lastName email membershipType')

@@ -27,6 +27,8 @@ const ClubOverviewPage = () => {
   const [deleting, setDeleting] = useState(false);
   const [changeAdminModalOpen, setChangeAdminModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('members');
+  const [updatingPaymentId, setUpdatingPaymentId] = useState(null);
+  const [confirmPaymentModal, setConfirmPaymentModal] = useState({ isOpen: false, payment: null });
 
   useEffect(() => {
     if (clubId) {
@@ -53,7 +55,31 @@ const ClubOverviewPage = () => {
         const paymentsRes = await apiCall(`/payments?clubId=${clubId}`);
         if (paymentsRes && paymentsRes.ok) {
           const paymentsData = await paymentsRes.json();
-          setPayments(paymentsData);
+          // fetch member payments for this club so we can compute member fees per clubPayment
+          try {
+            const mpRes = await apiCall(`/member-payments?clubId=${clubId}`);
+            let mpData = [];
+            if (mpRes && mpRes.ok) mpData = await mpRes.json();
+
+            // group sums by clubPayment id
+            const sums = {};
+            for (const mp of mpData) {
+              // clubPayment may be populated as an object or just an id string
+              const raw = mp.clubPayment;
+              const key = raw ? (raw._id ? String(raw._id) : String(raw)) : 'none';
+              sums[key] = sums[key] || 0;
+              sums[key] += Number(mp.amount || 0);
+            }
+
+            const enriched = (paymentsData || []).map((p) => {
+              const memberFees = sums[p._id] || 0;
+              return { ...p, memberFees, total: (Number(p.clubFeeAmount || 0) + memberFees) };
+            });
+
+            setPayments(enriched);
+          } catch (err) {
+            setPayments(paymentsData);
+          }
         }
       } catch (err) {
         console.warn('Failed to fetch payments:', err.message || err);
@@ -62,6 +88,29 @@ const ClubOverviewPage = () => {
       setError(err.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const markPaymentReceived = async (paymentId) => {
+    if (!paymentId) return;
+    setUpdatingPaymentId(paymentId);
+    try {
+      const res = await apiCall(`/payments/${paymentId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'Received' }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || 'Failed to update payment');
+      }
+      // refresh payments
+      await fetchClubAndMembers();
+    } catch (err) {
+      setError(err.message || 'Failed to mark payment received');
+    } finally {
+      setUpdatingPaymentId(null);
+      setConfirmPaymentModal({ isOpen: false, payment: null });
     }
   };
 
@@ -117,11 +166,34 @@ const ClubOverviewPage = () => {
   ];
 
   const paymentColumns = [
-    { key: 'paymentId', label: 'Payment ID' },
-    { key: 'status', label: 'Status' },
-    { key: 'clubFeeAmount', label: 'Amount', render: (v) => (v || v === 0 ? `$${Number(v).toFixed(2)}` : '') },
     { key: 'date', label: 'Date', render: (v) => (v ? new Date(v).toLocaleDateString() : '') },
     { key: 'clubYear', label: 'Year' },
+    { key: 'clubFeeAmount', label: 'Club Fee', render: (v) => (v || v === 0 ? `$${Number(v).toFixed(2)}` : '') },
+    { key: 'memberFees', label: 'Member Fees', render: (v) => (v || v === 0 ? `$${Number(v).toFixed(2)}` : '$0.00') },
+    { key: 'total', label: 'Total', render: (v) => (v || v === 0 ? `$${Number(v).toFixed(2)}` : '') },
+    { key: 'status', label: 'Status' },
+    {
+      key: 'actions',
+      label: 'Actions',
+      render: (v, row) => {
+        const canMark = (user?.adminType === 'System Admin' || user?.adminType === 'Club Admin') && row.status === 'Pending';
+        return (
+          <>
+            <button className="btn btn-secondary" onClick={() => navigate(`/payments/view/${row._id}`)}>View</button>
+            {canMark && (
+              <button
+                className="btn btn-success"
+                style={{ marginLeft: '0.5rem' }}
+                onClick={() => setConfirmPaymentModal({ isOpen: true, payment: row })}
+                disabled={updatingPaymentId === row._id}
+              >
+                {updatingPaymentId === row._id ? 'Saving...' : 'Payment Received'}
+              </button>
+            )}
+          </>
+        );
+      },
+    },
   ];
 
   return (
@@ -249,6 +321,16 @@ const ClubOverviewPage = () => {
         onConfirm={handleDeleteConfirm}
         onCancel={() => setDeleteModal({ isOpen: false, member: null })}
         isLoading={deleting}
+      />
+      <ConfirmModal
+        isOpen={confirmPaymentModal.isOpen}
+        title="Confirm Payment Received"
+        message={`Mark payment for ${confirmPaymentModal.payment?.clubYear || ''} as received? This will record who marked it and the timestamp.`}
+        confirmText="Yes, Mark Received"
+        cancelText="Cancel"
+        onConfirm={() => markPaymentReceived(confirmPaymentModal.payment?._id)}
+        onCancel={() => setConfirmPaymentModal({ isOpen: false, payment: null })}
+        isLoading={Boolean(updatingPaymentId)}
       />
       <ChangeMemberAdminModal
         isOpen={changeAdminModalOpen}

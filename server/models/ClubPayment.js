@@ -8,6 +8,8 @@ const clubPaymentSchema = new mongoose.Schema(
     clubFeeAmount: { type: Number, required: true },
     date: { type: Date, required: true },
     clubYear: { type: Number, required: true },
+    receivedAt: { type: Date },
+    receivedByMember: { type: mongoose.Schema.Types.ObjectId, ref: 'Member' },
   },
   { timestamps: true }
 );

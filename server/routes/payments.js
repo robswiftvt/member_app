@@ -22,7 +22,10 @@ router.get('/', authMiddleware, async (req, res) => {
     if (clubId) query.club = clubId;
     if (clubYear) query.clubYear = Number(clubYear);
 
-    const payments = await Payment.find(query).populate('club', 'name').sort({ date: -1 });
+    const payments = await Payment.find(query)
+      .populate('club', 'name')
+      .populate('receivedByMember', 'firstName lastName email')
+      .sort({ date: -1 });
     res.json(payments);
   } catch (err) {
     console.error('Fetch payments error:', err);
@@ -33,7 +36,9 @@ router.get('/', authMiddleware, async (req, res) => {
 // GET single payment
 router.get('/:id', authMiddleware, async (req, res) => {
   try {
-    const p = await Payment.findById(req.params.id).populate('club', 'name');
+    const p = await Payment.findById(req.params.id)
+      .populate('club', 'name')
+      .populate('receivedByMember', 'firstName lastName email');
     if (!p) return res.status(404).json({ error: 'Payment not found' });
     res.json(p);
   } catch (err) {
@@ -74,6 +79,48 @@ router.post(
     } catch (err) {
       console.error('Create payment error:', err);
       res.status(500).json({ error: 'Failed to create payment' });
+    }
+  }
+);
+
+// PATCH update payment (status update)
+router.patch(
+  '/:id',
+  authMiddleware,
+  [body('status').notEmpty().isIn(['Pending', 'Received', 'Paid']).withMessage('Invalid status')],
+  handleValidationErrors,
+  async (req, res) => {
+    try {
+      // Only System or Club Admins can change payment status
+      const userType = req.user?.adminType || '';
+      // Accept both full and short labels to be tolerant during client/token mismatches
+      const allowed = ['System Admin', 'Club Admin', 'System', 'Club'];
+      if (!allowed.includes(userType)) {
+        console.warn('Permission denied for payment update. userType=', userType, 'memberId=', req.user?.memberId || req.user?.id || 'unknown');
+        return res.status(403).json({ error: 'Insufficient permissions', yourRole: userType });
+      }
+
+      const payment = await Payment.findById(req.params.id);
+      if (!payment) return res.status(404).json({ error: 'Payment not found' });
+
+      // set or clear received info
+      payment.status = req.body.status;
+      if (req.body.status === 'Received') {
+        payment.receivedAt = new Date();
+        if (req.user && req.user.memberId) payment.receivedByMember = req.user.memberId;
+      } else {
+        payment.receivedAt = undefined;
+        payment.receivedByMember = undefined;
+      }
+
+      await payment.save();
+      const populated = await Payment.findById(payment._id)
+        .populate('club', 'name')
+        .populate('receivedByMember', 'firstName lastName email');
+      res.json(populated);
+    } catch (err) {
+      console.error('Update payment error:', err);
+      res.status(500).json({ error: 'Failed to update payment' });
     }
   }
 );

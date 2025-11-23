@@ -72,3 +72,13 @@ router.post('/logout', (req, res) => {
 });
 
 module.exports = router;
+
+// Protected helper to inspect the decoded token (useful for debugging)
+router.get('/me', require('../middleware/authMiddleware'), (req, res) => {
+  try {
+    // Return the decoded token payload as the server sees it
+    res.json({ user: req.user || null });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to read token' });
+  }
+});
