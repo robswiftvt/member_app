@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import apiCall from '../utils/apiCall';
 import './NewPaymentPage.css';
 
-export default function NewPaymentPage() {
+export default function NewPaymentPage2() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const clubId = searchParams.get('clubId');
@@ -129,6 +129,7 @@ export default function NewPaymentPage() {
               </div>
               {
                 (() => {
+                  // compute counts and display per-member format: "Full Members (N @ $Y)"
                   let countFull = 0;
                   let countHonorary = 0;
                   for (const m of unpaidMembers) {
@@ -157,7 +158,6 @@ export default function NewPaymentPage() {
                 <div className="summary-amount">${Number(summary.total).toFixed(2)}</div>
               </div>
             </div>
-
             <h2>Unpaid Members for {clubYear}</h2>
             <div className="table-responsive">
               <table className="data-grid">
@@ -191,216 +191,3 @@ export default function NewPaymentPage() {
     </div>
   );
 }
-import React, { useState, useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
-import apiCall from '../utils/apiCall';
-import './NewPaymentPage.css';
-
-const NewPaymentPage = () => {
-  const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const clubId = searchParams.get('clubId');
-
-  const [club, setClub] = useState(null);
-  const [clubFeeAmountDefault, setClubFeeAmountDefault] = useState(15);
-  const [clubYear, setClubYear] = useState(new Date().getFullYear());
-  const [error, setError] = useState('');
-  const [submitting, setSubmitting] = useState(false);
-  const [unpaidMembers, setUnpaidMembers] = useState([]);
-  const [selectedMembers, setSelectedMembers] = useState(new Set());
-  const [memberFeeAmount, setMemberFeeAmount] = useState(25);
-  const [honoraryFeeAmount, setHonoraryFeeAmount] = useState(20);
-
-  useEffect(() => {
-    export default NewPaymentPage;
-          setClubFeeAmountDefault(Number(cfg.clubFeeAmount || 15));
-        }
-      } catch (e) {
-        // ignore and use defaults
-      }
-    })();
-  }, [clubId]);
-
-  useEffect(() => {
-    if (clubId && clubYear) fetchUnpaidMembers();
-  }, [clubId, clubYear]);
-
-  const fetchClub = async () => {
-    try {
-      const res = await apiCall(`/clubs/${clubId}`);
-      if (!res.ok) throw new Error('Failed to fetch club');
-      const data = await res.json();
-      setClub(data);
-    } catch (err) {
-      setError(err.message);
-    }
-        
-            <div style={{ marginTop: 20 }}>
-              <h2>Payment Summary</h2>
-              <div className="payment-summary" style={{ marginBottom: 12 }}>
-                <div>Club Fee Amount: <strong>${clubFeeAmountDefault.toFixed(2)}</strong></div>
-                {
-                  (() => {
-                    // compute sums for selected members
-                    let sumFull = 0;
-                    let sumHonorary = 0;
-                    unpaidMembers.forEach((m) => {
-                      if (!selectedMembers.has(m._id)) return;
-                      const mType = m.membershipType || 'Full';
-                      if (mType === 'Full') sumFull += Number(memberFeeAmount || 0);
-                      else if (mType === 'Honorary') sumHonorary += Number(honoraryFeeAmount || 0);
-                    });
-                    const total = Number(clubFeeAmountDefault || 0) + sumFull + sumHonorary;
-                    return (
-                      <div style={{ marginTop: 8 }}>
-                        <div>Sum of Full Members: <strong>${sumFull.toFixed(2)}</strong></div>
-                        <div>Sum of Honorary Members: <strong>${sumHonorary.toFixed(2)}</strong></div>
-                        <div style={{ marginTop: 6 }}>Total: <strong>${total.toFixed(2)}</strong></div>
-                      </div>
-                    );
-                  })()
-                }
-              </div>
-
-              <h2>Unpaid Members for {clubYear}</h2>
-      const data = await res.json();
-      setUnpaidMembers(data);
-      // select all unpaid members by default
-      setSelectedMembers(new Set(data.map((m) => m._id)));
-    } catch (err) {
-      console.error('Fetch unpaid members error:', err);
-      setUnpaidMembers([]);
-    }
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
-    setSubmitting(true);
-    try {
-      const payload = {
-        club: clubId,
-        clubFeeAmount: parseFloat(clubFeeAmount),
-        date,
-        clubYear: parseInt(clubYear, 10),
-        status,
-      };
-
-      const res = await apiCall('/payments', { method: 'POST', body: JSON.stringify(payload) });
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || 'Failed to create payment');
-      }
-
-      const created = await res.json();
-      setCreatedClubPayment(created);
-
-      // After creating the club payment, create MemberPayments for selected members
-      const ids = Array.from(selectedMembers);
-      for (const id of ids) {
-        // create member payment (clubPayment will be linked)
-        await createMemberPayment(id, parseFloat(clubFeeAmount), created._id);
-      }
-
-      // navigate back to club overview and open payments tab
-      navigate(`/club-overview?id=${clubId}&tab=payments`);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const toggleSelectMember = (memberId) => {
-    setSelectedMembers((prev) => {
-      const next = new Set(prev);
-      if (next.has(memberId)) next.delete(memberId); else next.add(memberId);
-      return next;
-    });
-  };
-
-  const createMemberPayment = async (memberId, amt, clubPaymentId) => {
-    try {
-      const payload = {
-        member: memberId,
-        club: clubId,
-        clubPayment: clubPaymentId || (createdClubPayment ? createdClubPayment._id : undefined),
-        amount: amt,
-        clubYear: parseInt(clubYear, 10),
-      };
-      const res = await apiCall('/member-payments', { method: 'POST', body: JSON.stringify(payload) });
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || 'Failed to create member payment');
-      }
-      return true;
-    } catch (err) {
-      console.error('Create member payment error:', err);
-      setError(err.message);
-      return false;
-    }
-  };
-
-  
-
-  return (
-    <div className="form-container">
-      <div className="form-card">
-        <h1>New Payment</h1>
-        {error && <div className="error-banner">{error}</div>}
-
-        <form onSubmit={handleSubmit}>
-          {/* Club Fee Amount is taken from server config (CLUB_FEE_AMOUNT) or other logic; not editable here */}
-          {/* Club, date, status and clubYear are handled automatically: club from query string, date=timestamp of save, status='Pending', clubYear defaults to current year */}
-
-        
-            <div style={{ marginTop: 20 }}>
-              <h2>Unpaid Members for {clubYear}</h2>
-              
-              <div className="table-responsive">
-                <table className="data-grid">
-                  <thead>
-                        <tr>
-                          <th></th>
-                          <th>Name</th>
-                          <th>Membership Type</th>
-                          <th>Amount</th>
-                        </tr>
-                      </thead>
-                  <tbody>
-                        {unpaidMembers.length === 0 && (
-                          <tr><td colSpan={4}>No unpaid members for this club/year</td></tr>
-                        )}
-                        {unpaidMembers.map((m) => {
-                          const mType = m.membershipType || 'Full';
-                          let amt = 0;
-                          if (mType === 'Full') amt = Number(memberFeeAmount || 0);
-                          else if (mType === 'Honorary') amt = Number(honoraryFeeAmount || 0);
-                          else amt = 0;
-                          return (
-                            <tr key={m._id}>
-                              <td>
-                                <input type="checkbox" checked={selectedMembers.has(m._id)} onChange={() => toggleSelectMember(m._id)} />
-                              </td>
-                              <td>{m.firstName} {m.lastName}</td>
-                              <td>{mType}</td>
-                              <td>{amt.toFixed(2)}</td>
-                            </tr>
-                          );
-                        })}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-          <div className="form-actions">
-            <button type="button" className="btn btn-cancel" onClick={() => navigate(-1)} disabled={submitting}>Cancel</button>
-            <button type="submit" className="btn btn-primary" disabled={submitting}>{submitting ? 'Saving...' : 'Create Payment'}</button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-};
-
-export default NewPaymentPage;

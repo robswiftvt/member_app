@@ -9,3 +9,33 @@
 .error-banner {
   margin-bottom: 1rem;
 }
+
+/* Payment summary layout */
+.payment-summary {
+  max-width: 480px;
+}
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 6px 0;
+}
+.summary-label {
+  color: #333;
+}
+.summary-amount {
+  min-width: 110px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.summary-total {
+  margin-top: 8px;
+  font-weight: 600;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.summary-separator {
+  border-top: 1px solid #ddd;
+  margin: 8px 0;
+}

@@ -17,9 +17,10 @@ const handleValidationErrors = (req, res, next) => {
 // GET payments (optionally filter by clubId)
 router.get('/', authMiddleware, async (req, res) => {
   try {
-    const { clubId } = req.query;
+    const { clubId, clubYear } = req.query;
     const query = {};
     if (clubId) query.club = clubId;
+    if (clubYear) query.clubYear = Number(clubYear);
 
     const payments = await Payment.find(query).populate('club', 'name').sort({ date: -1 });
     res.json(payments);
@@ -47,7 +48,7 @@ router.post(
   authMiddleware,
   [
     body('club').notEmpty().isMongoId().withMessage('Valid club ID required'),
-    body('clubFeeAmount').notEmpty().isFloat({ gt: 0 }).withMessage('Club fee amount required'),
+    body('clubFeeAmount').notEmpty().isFloat({ min: 0 }).withMessage('Club fee amount required'),
     body('date').notEmpty().isISO8601().toDate().withMessage('Valid date required'),
     body('clubYear').notEmpty().isInt({ min: 1900 }).withMessage('Valid club year required'),
     body('status').optional().isIn(['Pending', 'Received', 'Paid']).withMessage('Invalid status'),
@@ -55,13 +56,18 @@ router.post(
   handleValidationErrors,
   async (req, res) => {
     try {
-      const { club, clubFeeAmount, date, clubYear, status } = req.body;
+      let { club, clubFeeAmount, date, clubYear, status } = req.body;
 
       // Validate club exists
       const clubExists = await Club.findById(club);
       if (!clubExists) return res.status(400).json({ error: 'Club not found' });
 
-      const payment = new Payment({ club, clubFeeAmount, date, clubYear, status: status || 'Pending' });
+      // If there's already a club-level payment with a non-zero clubFeeAmount for this club/year,
+      // do not charge the club fee again. Override incoming clubFeeAmount to 0 in that case.
+      const existing = await Payment.findOne({ club, clubYear, clubFeeAmount: { $gt: 0 } });
+      const fee = existing ? 0 : Number(clubFeeAmount || 0);
+
+      const payment = new Payment({ club, clubFeeAmount: fee, date, clubYear, status: status || 'Pending' });
       await payment.save();
       const populated = await payment.populate('club', 'name');
       res.status(201).json(populated);

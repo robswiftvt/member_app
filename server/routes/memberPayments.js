@@ -19,7 +19,10 @@ router.get('/', authMiddleware, async (req, res) => {
     const { clubId } = req.query;
     const query = {};
     if (clubId) query.club = clubId;
-    const list = await MemberPayment.find(query).populate('member', 'firstName lastName email').populate('clubPayment', 'paymentId clubYear');
+    // include membershipType on populated member so clients can show the type in member payment lists
+    const list = await MemberPayment.find(query)
+      .populate('member', 'firstName lastName email membershipType')
+      .populate('clubPayment', 'paymentId clubYear');
     res.json(list);
   } catch (err) {
     console.error('Fetch member payments error:', err);
@@ -74,7 +77,13 @@ router.get('/unpaid', authMiddleware, async (req, res) => {
     const end = new Date(`${year + 1}-01-01T00:00:00.000Z`);
 
     // members in club with membershipExpiration in the year
-    const members = await Member.find({ club: clubId, membershipExpiration: { $gte: start, $lt: end } }).select('firstName lastName email membershipExpiration');
+    // include membershipType so clients can render the correct row type
+    // exclude Associate members — they should not appear on the Unpaid Members grid
+    const members = await Member.find({
+      club: clubId,
+      membershipExpiration: { $gte: start, $lt: end },
+      membershipType: { $ne: 'Associate' },
+    }).select('firstName lastName email membershipExpiration membershipType');
 
     // find member payments for that clubYear
     const payments = await MemberPayment.find({ club: clubId, clubYear: year }).select('member');

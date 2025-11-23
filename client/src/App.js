@@ -7,7 +7,7 @@ import LoginPage from './pages/LoginPage';
 import HomePage from './pages/HomePage';
 import ClubForm from './pages/ClubForm';
 import ClubOverviewPage from './pages/ClubOverviewPage';
-import NewPaymentPage from './pages/NewPaymentPage';
+import NewPaymentPage from './pages/NewPaymentPage2';
 import MemberForm from './pages/MemberForm';
 import AdminPage from './pages/AdminPage';
 import UnauthorizedPage from './pages/UnauthorizedPage';

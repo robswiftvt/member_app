@@ -211,31 +211,7 @@ const ClubOverviewPage = () => {
             </div>
 
               <div style={{ marginTop: '1rem' }}>
-                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginBottom: '0.75rem' }}>
-                  <label style={{ fontWeight: 600 }}>Select Club Payment:</label>
-                  <select value={selectedClubPayment ? selectedClubPayment._id : ''} onChange={(e) => {
-                    const p = payments.find((x) => x._id === e.target.value);
-                    setSelectedClubPayment(p || null);
-                  }}>
-                    <option value="">(none)</option>
-                    {payments.map((p) => (
-                      <option key={p._id} value={p._id}>{p.paymentId} — {p.clubYear} — ${p.clubFeeAmount}</option>
-                    ))}
-                  </select>
-                  {selectedClubPayment && (
-                    <button className="btn btn-secondary" onClick={async () => {
-                      // fetch unpaid members for this clubYear
-                      try {
-                        const res = await apiCall(`/member-payments/unpaid?clubId=${clubId}&clubYear=${selectedClubPayment.clubYear}`);
-                        if (!res.ok) throw new Error('Failed to fetch unpaid members');
-                        const list = await res.json();
-                        setUnpaidMembers(list);
-                      } catch (err) {
-                        setError(err.message || err);
-                      }
-                    }}>Show Unpaid Members</button>
-                  )}
-                </div>
+                {/* Select Club Payment removed per UI change request */}
 
                 <DataGrid columns={paymentColumns} rows={payments} pageSize={10} />
 
