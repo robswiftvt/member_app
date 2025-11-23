@@ -1,6 +1,38 @@
 {
   "version": "0.2.0",
   "configurations": [
+  {
+      "name": "Backend (Node.js) - 10/25 Cutoff",
+      "type": "node",
+      "request": "launch",
+      "program": "${workspaceFolder}/server/server.js",
+      "restart": true,
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "skipFiles": ["<node_internals>/**"],
+      "cwd": "${workspaceFolder}/server",
+      "env": {
+        "NODE_ENV": "development",
+        "NEW_MEMBER_CUTOFF_MONTH": "10",
+        "NEW_MEMBER_CUTOFF_DAY": "25"
+      }
+    },
+   {
+      "name": "Backend (Node.js) - 12/01 Cutoff",
+      "type": "node",
+      "request": "launch",
+      "program": "${workspaceFolder}/server/server.js",
+      "restart": true,
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "skipFiles": ["<node_internals>/**"],
+      "cwd": "${workspaceFolder}/server",
+      "env": {
+        "NODE_ENV": "development",
+        "NEW_MEMBER_CUTOFF_MONTH": "12",
+        "NEW_MEMBER_CUTOFF_DAY": "1"
+      }
+    },
     {
       "name": "Backend (Node.js)",
       "type": "node",

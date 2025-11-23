@@ -65,8 +65,16 @@ const MemberForm = ({ isEdit = false }) => {
     const cutoffDate = new Date(year, (cutoff.month || 10) - 1, cutoff.day || 30);
     const decYear = today < cutoffDate ? year : year + 1;
     const decIso = `${decYear}-12-31`;
-    if (!formData.membershipExpiration) {
+    const cur = formData.membershipExpiration ? formData.membershipExpiration : null;
+    if (!cur) {
       setFormData((prev) => ({ ...prev, membershipExpiration: decIso }));
+    } else {
+      // If the current expiration is further in the future than the newly computed Dec 31,
+      // replace it (this covers the case where initial/default was computed with an older cutoff).
+      const curYear = Number(cur.split('-')[0]);
+      if (!Number.isNaN(curYear) && curYear > decYear) {
+        setFormData((prev) => ({ ...prev, membershipExpiration: decIso }));
+      }
     }
   }, [cutoff]);
 
@@ -200,21 +208,28 @@ const MemberForm = ({ isEdit = false }) => {
                 (() => {
                   const today = new Date();
                   const year = today.getFullYear();
-                  const cutoff = new Date(year, 9, 30); // Oct 30
-                  const decYear = today < cutoff ? year : year + 1;
-                  const decIso = new Date(decYear, 11, 31).toISOString().slice(0, 10);
-                  const cur = formData.membershipExpiration ? new Date(formData.membershipExpiration).toISOString().slice(0, 10) : null;
-                  const options = [];
-                  if (cur) options.push(cur);
-                  if (!cur || decIso !== cur) options.push(decIso);
+                  const cutoffDate = new Date(year, (cutoff.month || 10) - 1, cutoff.day || 30);
+                  const decYear = today < cutoffDate ? year : year + 1;
+                  const decIso = `${decYear}-12-31`;
+                  const cur = formData.membershipExpiration ? formData.membershipExpiration : null;
+
+                  let options = [];
+                  if (!isEdit) {
+                    // For new members always present only the computed Dec 31 option
+                    options = [decIso];
+                  } else {
+                    // For edits, show existing expiration (if any) and also allow switching to Dec 31
+                    if (cur) options.push(cur);
+                    if (!cur || decIso !== cur) options.push(decIso);
+                  }
 
                   return (
                     <select id="membershipExpiration" name="membershipExpiration" value={formData.membershipExpiration} onChange={handleChange} disabled={submitting}>
-                              {options.map((opt) => {
-                              const [y,m,d] = opt.split('-');
-                              const label = `${m}/${d}/${y}`;
-                              return <option key={opt} value={opt}>{label}</option>;
-                            })}
+                      {options.map((opt) => {
+                        const [y, m, d] = opt.split('-');
+                        const label = `${m}/${d}/${y}`;
+                        return <option key={opt} value={opt}>{label}</option>;
+                      })}
                     </select>
                   );
                 })()
