@@ -11,6 +11,7 @@ import NewPaymentPage from './pages/NewPaymentPage2';
 import PaymentOverviewPage from './pages/PaymentOverviewPage';
 import MemberForm from './pages/MemberForm';
 import AdminPage from './pages/AdminPage';
+import NewExportPage from './pages/NewExportPage';
 import UnauthorizedPage from './pages/UnauthorizedPage';
 
 import './App.css';
@@ -95,6 +96,16 @@ const AppContent = () => {
               <PaymentOverviewPage />
             </ProtectedRoute>
           }
+        />
+
+        {/* Export Management Pages */}
+        <Route 
+          path="/exports/new" 
+          element={
+            <ProtectedRoute requiredRoles={['System Admin', 'Club Admin']}>
+              <NewExportPage />
+            </ProtectedRoute>
+          } 
         />
 
         {/* Member Management Pages */}

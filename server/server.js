@@ -1,6 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
 const connectDB = require('./db');
 const mongoose = require('mongoose');
 const authMiddleware = require('./middleware/authMiddleware');
@@ -9,6 +10,9 @@ const authRoutes = require('./routes/auth');
 const app = express();
 app.use(cors());
 app.use(express.json());
+
+// Serve static files from uploads directory
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Connect to MongoDB
 connectDB();
@@ -24,6 +28,8 @@ const paymentRoutes = require('./routes/payments');
 const memberPaymentRoutes = require('./routes/memberPayments');
 const configRoutes = require('./routes/config');
 const uploadRoutes = require('./routes/uploads');
+const fileImportRoutes = require('./routes/fileImports');
+const fileExportRoutes = require('./routes/fileExports');
 app.use('/api/clubs', clubRoutes);
 app.use('/api/members', memberRoutes);
 app.use('/api/admins', adminRoutes);
@@ -31,6 +37,8 @@ app.use('/api/payments', paymentRoutes);
 app.use('/api/member-payments', memberPaymentRoutes);
 app.use('/api/config', configRoutes);
 app.use('/api/uploads', uploadRoutes);
+app.use('/api/file-imports', fileImportRoutes);
+app.use('/api/file-exports', fileExportRoutes);
 
 // Status route to report server + MongoDB connection state
 app.get('/api/status', (req, res) => {

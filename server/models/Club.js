@@ -8,11 +8,20 @@ const clubSchema = new mongoose.Schema(
       unique: true,
       trim: true,
     },
+    charterNumber: {
+      type: String,
+      trim: true,
+      index: true,
+    },
     homePage: {
       type: String,
       trim: true,
     },
     location: {
+      type: String,
+      trim: true,
+    },
+    state: {
       type: String,
       trim: true,
     },

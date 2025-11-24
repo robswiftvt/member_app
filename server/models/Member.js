@@ -3,6 +3,12 @@ const bcrypt = require('bcryptjs');
 
 const memberSchema = new mongoose.Schema(
   {
+    nfrwContactId: {
+      type: String,
+      trim: true,
+      index: true,
+      sparse: true,
+    },
     firstName: {
       type: String,
       required: true,
@@ -65,6 +71,17 @@ const memberSchema = new mongoose.Schema(
     deceased: {
       type: Boolean,
       default: false,
+    },
+    gender: {
+      type: String,
+      trim: true,
+    },
+    dateOfBirth: {
+      type: Date,
+    },
+    associatePrimaryMember: {
+      type: String,
+      trim: true,
     },
     membershipType: {
       type: String,
