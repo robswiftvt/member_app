@@ -11,6 +11,7 @@ const HomePage = () => {
   const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const [clubs, setClubs] = useState([]);
+  const [members, setMembers] = useState([]);
   const [fileImports, setFileImports] = useState([]);
   const [fileExports, setFileExports] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -33,6 +34,8 @@ const HomePage = () => {
   useEffect(() => {
     if (activeTab === 'clubs') {
       fetchClubs();
+    } else if (activeTab === 'members') {
+      fetchMembers();
     } else if (activeTab === 'imports') {
       fetchFileImports();
     } else if (activeTab === 'exports') {
@@ -48,6 +51,22 @@ const HomePage = () => {
       if (!response.ok) throw new Error('Failed to fetch clubs');
       const data = await response.json();
       setClubs(data);
+    } catch (err) {
+      setError(err.message);
+      console.error('Fetch error:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchMembers = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const response = await apiCall('/members');
+      if (!response.ok) throw new Error('Failed to fetch members');
+      const data = await response.json();
+      setMembers(data);
     } catch (err) {
       setError(err.message);
       console.error('Fetch error:', err);
@@ -175,19 +194,32 @@ const HomePage = () => {
     setDeleteModal({ isOpen: true, club });
   };
 
+  const handleMemberEdit = (member) => {
+    navigate(`/member/edit/${member._id}`);
+  };
+
+  const handleMemberDelete = (member) => {
+    setDeleteModal({ isOpen: true, club: member, isMember: true });
+  };
+
   const handleDeleteConfirm = async () => {
     if (!deleteModal.club) return;
     
     setDeleting(true);
     try {
-      const response = await apiCall(`/clubs/${deleteModal.club._id}`, {
+      const endpoint = deleteModal.isMember ? `/members/${deleteModal.club._id}` : `/clubs/${deleteModal.club._id}`;
+      const response = await apiCall(endpoint, {
         method: 'DELETE',
       });
       
-      if (!response.ok) throw new Error('Failed to delete club');
+      if (!response.ok) throw new Error(deleteModal.isMember ? 'Failed to delete member' : 'Failed to delete club');
       
-      setClubs(clubs.filter((c) => c._id !== deleteModal.club._id));
-      setDeleteModal({ isOpen: false, club: null });
+      if (deleteModal.isMember) {
+        setMembers(members.filter((m) => m._id !== deleteModal.club._id));
+      } else {
+        setClubs(clubs.filter((c) => c._id !== deleteModal.club._id));
+      }
+      setDeleteModal({ isOpen: false, club: null, isMember: false });
     } catch (err) {
       setError(err.message);
     } finally {
@@ -219,6 +251,15 @@ const HomePage = () => {
       label: 'Member Admin',
       render: (value) => value ? `${value.firstName} ${value.lastName}` : 'Unassigned'
     },
+  ];
+
+  const memberColumns = [
+    { key: 'firstName', label: 'First Name', render: (v) => v || '-' },
+    { key: 'lastName', label: 'Last Name', render: (v) => v || '-' },
+    { key: 'email', label: 'Email', render: (v) => v || '-' },
+    { key: 'club', label: 'Club', render: (v) => (v && v.name ? v.name : '-') },
+    { key: 'membershipType', label: 'Member Type', render: (v) => v || '-' },
+    { key: 'adminType', label: 'Admin Type', render: (v) => v || '-' },
   ];
 
   const importColumns = [
@@ -337,104 +378,133 @@ const HomePage = () => {
     <div className="page-container">
       <div className="page-header">
         <div>
-          <h1>{activeTab === 'clubs' ? 'Clubs' : activeTab === 'imports' ? 'File Imports' : 'File Exports'}</h1>
-          <p>{activeTab === 'clubs' ? 'Manage all clubs and their members' : activeTab === 'imports' ? 'View and manage file imports' : 'View and manage file exports'}</p>
+          <h1>{activeTab === 'clubs' ? 'Clubs' : activeTab === 'members' ? 'Member Administration' : activeTab === 'imports' ? 'File Imports' : 'File Exports'}</h1>
+          <p>{activeTab === 'clubs' ? 'Manage all clubs and their members' : activeTab === 'members' ? 'Manage system and club administrators' : activeTab === 'imports' ? 'View and manage file imports' : 'View and manage file exports'}</p>
         </div>
-        <div className="header-actions">
-          {activeTab === 'clubs' && (
-            <>
-              <button className="btn btn-primary" onClick={() => navigate('/club/add')}>
-                + Add Club
-              </button>
-              {user?.adminType === 'System Admin' && (
-                <button className="btn btn-secondary" onClick={() => navigate('/admins')}>
-                  Member Administration
-                </button>
-              )}
-            </>
-          )}
-          {activeTab === 'imports' && (
-            <>
-              <button className="btn btn-primary" onClick={() => document.getElementById('import-file-input')?.click()}>
-                + New Import
-              </button>
-              <input 
-                id="import-file-input" 
-                type="file" 
-                accept=".xlsx,.xls" 
-                style={{ display: 'none' }} 
-                onChange={handleFileUpload}
-              />
-            </>
-          )}
-          {activeTab === 'exports' && (
-            <button className="btn btn-primary" onClick={() => navigate('/exports/new')}>
-              + New Export
-            </button>
-          )}
-        </div>
-      </div>
-
-      <div className="tabs">
-        <button 
-          className={`tab ${activeTab === 'clubs' ? 'active' : ''}`}
-          onClick={() => setActiveTab('clubs')}
-        >
-          Clubs
-        </button>
-        <button 
-          className={`tab ${activeTab === 'imports' ? 'active' : ''}`}
-          onClick={() => setActiveTab('imports')}
-        >
-          Imports
-        </button>
-        <button 
-          className={`tab ${activeTab === 'exports' ? 'active' : ''}`}
-          onClick={() => setActiveTab('exports')}
-        >
-          Exports
-        </button>
       </div>
 
       {error && <div className="error-banner">{error}</div>}
 
+      <div className="tabs">
+        <div className="tab-list">
+          <button 
+            className={`tab ${activeTab === 'clubs' ? 'active' : ''}`}
+            onClick={() => setActiveTab('clubs')}
+          >
+            Clubs
+          </button>
+          {user?.adminType === 'System Admin' && (
+            <button 
+              className={`tab ${activeTab === 'members' ? 'active' : ''}`}
+              onClick={() => setActiveTab('members')}
+            >
+              Members
+            </button>
+          )}
+          <button 
+            className={`tab ${activeTab === 'imports' ? 'active' : ''}`}
+            onClick={() => setActiveTab('imports')}
+          >
+            Imports
+          </button>
+          <button 
+            className={`tab ${activeTab === 'exports' ? 'active' : ''}`}
+            onClick={() => setActiveTab('exports')}
+          >
+            Exports
+          </button>
+        </div>
+      </div>
+
       {activeTab === 'clubs' && (
-        <DataGrid
-          columns={clubColumns}
-          rows={clubs}
-          loading={loading}
-          onEdit={handleEdit}
-          onDelete={handleDeleteClick}
-          pageSize={10}
-        />
+        <div className="tab-section">
+          <div className="section-header">
+            <h2>Clubs ({clubs.length})</h2>
+            <button className="btn btn-primary" onClick={() => navigate('/club/add')}>
+              + Add Club
+            </button>
+          </div>
+          <DataGrid
+            columns={clubColumns}
+            rows={clubs}
+            loading={loading}
+            onEdit={handleEdit}
+            onDelete={handleDeleteClick}
+            pageSize={10}
+          />
+        </div>
+      )}
+
+      {activeTab === 'members' && (
+        <div className="tab-section">
+          <div className="section-header">
+            <h2>Members ({members.length})</h2>
+            <button className="btn btn-primary" onClick={() => navigate('/member/add')}>
+              + Add Member
+            </button>
+          </div>
+          <DataGrid
+            columns={memberColumns}
+            rows={members}
+            loading={loading}
+            onEdit={handleMemberEdit}
+            onDelete={handleMemberDelete}
+            pageSize={10}
+          />
+        </div>
       )}
 
       {activeTab === 'imports' && (
-        <DataGrid
-          columns={importColumns}
-          rows={fileImports}
-          loading={loading}
-          pageSize={10}
-        />
+        <div className="tab-section">
+          <div className="section-header">
+            <h2>File Imports ({fileImports.length})</h2>
+            <button className="btn btn-primary" onClick={() => document.getElementById('import-file-input')?.click()}>
+              + New Import
+            </button>
+            <input 
+              id="import-file-input" 
+              type="file" 
+              accept=".xlsx,.xls" 
+              style={{ display: 'none' }} 
+              onChange={handleFileUpload}
+            />
+          </div>
+          <DataGrid
+            columns={importColumns}
+            rows={fileImports}
+            loading={loading}
+            pageSize={10}
+          />
+        </div>
       )}
 
       {activeTab === 'exports' && (
-        <DataGrid
-          columns={exportColumns}
-          rows={fileExports}
-          loading={loading}
-          pageSize={10}
-        />
+        <div className="tab-section">
+          <div className="section-header">
+            <h2>File Exports ({fileExports.length})</h2>
+            <button className="btn btn-primary" onClick={() => navigate('/exports/new')}>
+              + New Export
+            </button>
+          </div>
+          <DataGrid
+            columns={exportColumns}
+            rows={fileExports}
+            loading={loading}
+            pageSize={10}
+          />
+        </div>
       )}
 
       <ConfirmModal
         isOpen={deleteModal.isOpen}
-        title="Remove Club"
-        message={`Are you sure you want to remove the club "${deleteModal.club?.name}"? This will also remove all Members and cannot be undone.`}
-        confirmText="Yes, Remove"
+        title={deleteModal.isMember ? "Delete Member" : "Remove Club"}
+        message={deleteModal.isMember 
+          ? `Are you sure you want to delete ${deleteModal.club?.firstName} ${deleteModal.club?.lastName}? This action cannot be undone.`
+          : `Are you sure you want to remove the club "${deleteModal.club?.name}"? This will also remove all Members and cannot be undone.`}
+        confirmText={deleteModal.isMember ? "Yes, Delete" : "Yes, Remove"}
         cancelText="Cancel"
         onConfirm={handleDeleteConfirm}
-        onCancel={() => setDeleteModal({ isOpen: false, club: null })}
+        onCancel={() => setDeleteModal({ isOpen: false, club: null, isMember: false })}
         isLoading={deleting}
       />
     </div>
