@@ -12,6 +12,7 @@ import PaymentOverviewPage from './pages/PaymentOverviewPage';
 import MemberForm from './pages/MemberForm';
 import AdminPage from './pages/AdminPage';
 import NewExportPage from './pages/NewExportPage';
+import FileImportPage from './pages/FileImportPage';
 import UnauthorizedPage from './pages/UnauthorizedPage';
 
 import './App.css';
@@ -104,6 +105,16 @@ const AppContent = () => {
           element={
             <ProtectedRoute requiredRoles={['System Admin', 'Club Admin']}>
               <NewExportPage />
+            </ProtectedRoute>
+          } 
+        />
+
+        {/* File Import Management Pages */}
+        <Route 
+          path="/file-import/:id" 
+          element={
+            <ProtectedRoute requiredRoles={['System Admin', 'Club Admin']}>
+              <FileImportPage />
             </ProtectedRoute>
           } 
         />

@@ -254,18 +254,49 @@ const HomePage = () => {
   ];
 
   const memberColumns = [
-    { key: 'firstName', label: 'First Name', render: (v) => v || '-' },
-    { key: 'lastName', label: 'Last Name', render: (v) => v || '-' },
-    { key: 'email', label: 'Email', render: (v) => v || '-' },
-    { key: 'club', label: 'Club', render: (v) => (v && v.name ? v.name : '-') },
-    { key: 'membershipType', label: 'Member Type', render: (v) => v || '-' },
-    { key: 'adminType', label: 'Admin Type', render: (v) => v || '-' },
+    { key: 'firstName', label: 'First Name', render: (v) => v || '-', visible: true },
+    { key: 'lastName', label: 'Last Name', render: (v) => v || '-', visible: true },
+    { key: 'email', label: 'Email', render: (v) => v || '-', visible: true },
+    { key: 'club', label: 'Club', render: (v) => (v && v.name ? v.name : '-'), visible: true },
+    { key: 'membershipType', label: 'Member Type', render: (v) => v || '-', visible: true },
+    { key: 'adminType', label: 'Admin Type', render: (v) => v || '-', visible: true },
+    { key: 'nfrwContactId', label: 'NFRW ID', render: (v) => v || '-', visible: false },
+    { key: 'charterNumber', label: 'Charter Number', render: (v, row) => (row.club && row.club.charterNumber ? row.club.charterNumber : '-'), visible: false },
+    { key: 'streetAddress', label: 'Address', render: (v) => v || '-', visible: false },
+    { key: 'address2', label: 'Address 2', render: (v) => v || '-', visible: false },
+    { key: 'city', label: 'City', render: (v) => v || '-', visible: false },
+    { key: 'state', label: 'State', render: (v) => v || '-', visible: false },
+    { key: 'zip', label: 'Zip', render: (v) => v || '-', visible: false },
+    { key: 'phone', label: 'Phone Number', render: (v) => v || '-', visible: false },
+    { 
+      key: 'membershipExpiration', 
+      label: 'Member Expiration', 
+      render: (v) => {
+        if (!v) return '-';
+        const date = new Date(v);
+        return date.toLocaleDateString();
+      },
+      visible: false
+    },
+    { key: 'deceased', label: 'Deceased', render: (v) => v ? 'Yes' : 'No', visible: false },
   ];
 
   const importColumns = [
     { 
       key: 'originalName', 
-      label: 'File Name'
+      label: 'File Name',
+      render: (value, row) => {
+        if (row.filePath) {
+          const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+          const downloadUrl = `${apiUrl}${row.filePath}`;
+          return (
+            <a href={downloadUrl} download target="_blank" rel="noopener noreferrer">
+              {value}
+            </a>
+          );
+        }
+        return value;
+      }
     },
     { 
       key: 'exportSetId', 
@@ -301,15 +332,27 @@ const HomePage = () => {
       label: 'Actions',
       render: (value, row) => {
         const canProcess = row.status === 'Uploaded' || row.status === 'Failed';
-        return canProcess ? (
-          <button 
-            className="btn btn-primary"
-            onClick={() => handleProcessImport(row._id)}
-            disabled={processingId === row._id}
-          >
-            {processingId === row._id ? 'Processing...' : 'Process'}
-          </button>
-        ) : null;
+        return (
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <button 
+              className="btn btn-secondary"
+              onClick={() => navigate(`/file-import/${row._id}`)}
+              style={{ padding: '0.5rem 1rem', fontSize: '0.9rem' }}
+            >
+              View
+            </button>
+            {canProcess && (
+              <button 
+                className="btn btn-primary"
+                onClick={() => handleProcessImport(row._id)}
+                disabled={processingId === row._id}
+                style={{ padding: '0.5rem 1rem', fontSize: '0.9rem' }}
+              >
+                {processingId === row._id ? 'Processing...' : 'Process'}
+              </button>
+            )}
+          </div>
+        );
       }
     },
   ];
@@ -450,6 +493,9 @@ const HomePage = () => {
             onEdit={handleMemberEdit}
             onDelete={handleMemberDelete}
             pageSize={10}
+            enableColumnSelect={true}
+            enableFilter={true}
+            enableSort={true}
           />
         </div>
       )}

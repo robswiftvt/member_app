@@ -155,14 +155,33 @@ const ClubOverviewPage = () => {
   }
 
   const memberColumns = [
-    { key: 'firstName', label: 'First Name' },
-    { key: 'lastName', label: 'Last Name' },
-    { key: 'email', label: 'Email' },
+    { key: 'firstName', label: 'First Name', visible: true },
+    { key: 'lastName', label: 'Last Name', visible: true },
+    { key: 'email', label: 'Email', visible: true },
     {
       key: 'membershipType',
       label: 'Membership Type',
       render: (value) => <span className={`badge ${value.toLowerCase()}`}>{value}</span>,
+      visible: true
     },
+    { key: 'nfrwContactId', label: 'NFRW ID', render: (v) => v || '-', visible: false },
+    { key: 'streetAddress', label: 'Address', render: (v) => v || '-', visible: false },
+    { key: 'address2', label: 'Address 2', render: (v) => v || '-', visible: false },
+    { key: 'city', label: 'City', render: (v) => v || '-', visible: false },
+    { key: 'state', label: 'State', render: (v) => v || '-', visible: false },
+    { key: 'zip', label: 'Zip', render: (v) => v || '-', visible: false },
+    { key: 'phone', label: 'Phone Number', render: (v) => v || '-', visible: false },
+    { 
+      key: 'membershipExpiration', 
+      label: 'Member Expiration', 
+      render: (v) => {
+        if (!v) return '-';
+        const date = new Date(v);
+        return date.toLocaleDateString();
+      },
+      visible: false
+    },
+    { key: 'deceased', label: 'Deceased', render: (v) => v ? 'Yes' : 'No', visible: false },
   ];
 
   const paymentColumns = [
@@ -307,6 +326,9 @@ const ClubOverviewPage = () => {
               onEdit={handleEditMember}
               onDelete={handleDeleteMember}
               pageSize={10}
+              enableColumnSelect={true}
+              enableFilter={true}
+              enableSort={true}
             />
           </div>
         )}

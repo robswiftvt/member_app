@@ -24,7 +24,7 @@ const fileImportRowSchema = new mongoose.Schema(
     },
     rowImportResult: {
       type: String,
-      enum: ['Created', 'Updated', 'Skipped'],
+      enum: ['Created', 'Updated', 'Unchanged', 'Skipped'],
       required: true,
     },
     exception: {

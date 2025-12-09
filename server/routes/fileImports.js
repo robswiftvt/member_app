@@ -189,7 +189,7 @@ router.post('/:id/process', authMiddleware, async (req, res) => {
     const sheet = workbook.Sheets[sheetName];
     const rows = XLSX.utils.sheet_to_json(sheet, { defval: '', raw: false });
 
-    const results = { created: 0, updated: 0, skipped: 0, errors: [] };
+    const results = { created: 0, updated: 0, unchanged: 0, skipped: 0, errors: [] };
 
     // Helper to get field value from row with multiple possible column names
     const getField = (row, variants) => {
@@ -350,11 +350,104 @@ router.post('/:id/process', authMiddleware, async (req, res) => {
         }
 
         if (existing) {
-          // Update existing member - placeholder for now (you said we'll handle this later)
-          // For now, just count as updated without changing data
+          // Check if any fields have changed
+          let hasChanges = false;
+          
+          const newNfrwContactId = nfrwContactId || existing.nfrwContactId;
+          const newPrefix = prefix || existing.prefix;
+          const newFirstName = firstName;
+          const newLastName = lastName;
+          const newMiddleName = middleName || existing.middleName;
+          const newBadgeNickname = badgeNickname || existing.badgeNickname;
+          const newSuffix = suffix || existing.suffix;
+          const newStreetAddress = streetAddress || existing.streetAddress;
+          const newAddress2 = address2 || existing.address2;
+          const newCity = city || existing.city;
+          const newState = state || existing.state;
+          const newZip = zip || existing.zip;
+          const newPhone = phone || existing.phone;
+          const newPhoneType = normalizedPhoneType || existing.phoneType;
+          const newMembershipType = normalizedMembershipType || existing.membershipType;
+          const newAssociatePrimaryMember = associatePrimaryMember || existing.associatePrimaryMember;
+          const newGender = gender || existing.gender;
+          const newOccupation = occupation || existing.occupation;
+          const newEmployer = employer || existing.employer;
+          const newDeceased = deceased;
+          const newEmail = email || existing.email;
+          const newMembershipExpiration = membershipExpiration || existing.membershipExpiration;
+          const newDateOfBirth = dateOfBirth || existing.dateOfBirth;
+          const newClub = club._id;
+          
+          // Helper to compare dates
+          const datesEqual = (d1, d2) => {
+            if (!d1 && !d2) return true;
+            if (!d1 || !d2) return false;
+            return new Date(d1).getTime() === new Date(d2).getTime();
+          };
+          
+          // Check each field for changes
+          if (existing.nfrwContactId !== newNfrwContactId) hasChanges = true;
+          if (existing.prefix !== newPrefix) hasChanges = true;
+          if (existing.firstName !== newFirstName) hasChanges = true;
+          if (existing.lastName !== newLastName) hasChanges = true;
+          if (existing.middleName !== newMiddleName) hasChanges = true;
+          if (existing.badgeNickname !== newBadgeNickname) hasChanges = true;
+          if (existing.suffix !== newSuffix) hasChanges = true;
+          if (existing.streetAddress !== newStreetAddress) hasChanges = true;
+          if (existing.address2 !== newAddress2) hasChanges = true;
+          if (existing.city !== newCity) hasChanges = true;
+          if (existing.state !== newState) hasChanges = true;
+          if (existing.zip !== newZip) hasChanges = true;
+          if (existing.phone !== newPhone) hasChanges = true;
+          if (existing.phoneType !== newPhoneType) hasChanges = true;
+          if (existing.membershipType !== newMembershipType) hasChanges = true;
+          if (existing.associatePrimaryMember !== newAssociatePrimaryMember) hasChanges = true;
+          if (existing.gender !== newGender) hasChanges = true;
+          if (existing.occupation !== newOccupation) hasChanges = true;
+          if (existing.employer !== newEmployer) hasChanges = true;
+          if (existing.deceased !== newDeceased) hasChanges = true;
+          if (existing.email !== newEmail) hasChanges = true;
+          if (!datesEqual(existing.membershipExpiration, newMembershipExpiration)) hasChanges = true;
+          if (!datesEqual(existing.dateOfBirth, newDateOfBirth)) hasChanges = true;
+          if (existing.club.toString() !== newClub.toString()) hasChanges = true;
+          
           memberId = existing._id;
-          rowImportResult = 'Updated';
-          results.updated++;
+          
+          if (hasChanges) {
+            // Update existing member with data from import
+            existing.nfrwContactId = newNfrwContactId;
+            existing.prefix = newPrefix;
+            existing.firstName = newFirstName;
+            existing.lastName = newLastName;
+            existing.middleName = newMiddleName;
+            existing.badgeNickname = newBadgeNickname;
+            existing.suffix = newSuffix;
+            existing.streetAddress = newStreetAddress;
+            existing.address2 = newAddress2;
+            existing.city = newCity;
+            existing.state = newState;
+            existing.zip = newZip;
+            existing.phone = newPhone;
+            existing.phoneType = newPhoneType;
+            existing.membershipType = newMembershipType;
+            existing.associatePrimaryMember = newAssociatePrimaryMember;
+            existing.gender = newGender;
+            existing.occupation = newOccupation;
+            existing.employer = newEmployer;
+            existing.deceased = newDeceased;
+            existing.email = newEmail;
+            existing.membershipExpiration = newMembershipExpiration;
+            existing.dateOfBirth = newDateOfBirth;
+            existing.club = newClub;
+            
+            await existing.save();
+            rowImportResult = 'Updated';
+            results.updated++;
+          } else {
+            // No changes detected
+            rowImportResult = 'Unchanged';
+            results.unchanged++;
+          }
         } else {
           // Create new member
           const memberData = {

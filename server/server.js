@@ -29,6 +29,7 @@ const memberPaymentRoutes = require('./routes/memberPayments');
 const configRoutes = require('./routes/config');
 const uploadRoutes = require('./routes/uploads');
 const fileImportRoutes = require('./routes/fileImports');
+const fileImportRowRoutes = require('./routes/fileImportRows');
 const fileExportRoutes = require('./routes/fileExports');
 app.use('/api/clubs', clubRoutes);
 app.use('/api/members', memberRoutes);
@@ -38,6 +39,7 @@ app.use('/api/member-payments', memberPaymentRoutes);
 app.use('/api/config', configRoutes);
 app.use('/api/uploads', uploadRoutes);
 app.use('/api/file-imports', fileImportRoutes);
+app.use('/api/file-import-rows', fileImportRowRoutes);
 app.use('/api/file-exports', fileExportRoutes);
 
 // Status route to report server + MongoDB connection state
