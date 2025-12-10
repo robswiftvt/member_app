@@ -1,0 +1,13 @@
+{
+  "name": "member-app",
+  "version": "1.0.0",
+  "description": "NFRW Member Management Application",
+  "scripts": {
+    "start": "cd server && npm start",
+    "install": "cd server && npm install",
+    "build": "cd server && npm install"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}
