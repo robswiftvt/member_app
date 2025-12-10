@@ -29,7 +29,6 @@ const MemberForm = ({ isEdit = false }) => {
     employer: '',
     deceased: false,
     membershipType: 'Full',
-    membershipExpiration: '',
     club: queryClubId || user?.clubId || '',
   });
   const [clubs, setClubs] = useState([]);
@@ -58,26 +57,6 @@ const MemberForm = ({ isEdit = false }) => {
     })();
   }, []);
 
-  // Ensure a sensible default membershipExpiration when creating new members
-  useEffect(() => {
-    const today = new Date();
-    const year = today.getFullYear();
-    const cutoffDate = new Date(year, (cutoff.month || 10) - 1, cutoff.day || 30);
-    const decYear = today < cutoffDate ? year : year + 1;
-    const decIso = `${decYear}-12-31`;
-    const cur = formData.membershipExpiration ? formData.membershipExpiration : null;
-    if (!cur) {
-      setFormData((prev) => ({ ...prev, membershipExpiration: decIso }));
-    } else {
-      // If the current expiration is further in the future than the newly computed Dec 31,
-      // replace it (this covers the case where initial/default was computed with an older cutoff).
-      const curYear = Number(cur.split('-')[0]);
-      if (!Number.isNaN(curYear) && curYear > decYear) {
-        setFormData((prev) => ({ ...prev, membershipExpiration: decIso }));
-      }
-    }
-  }, [cutoff]);
-
   const fetchMember = async () => {
     try {
       const response = await apiCall(`/members/${id}`);
@@ -102,7 +81,6 @@ const MemberForm = ({ isEdit = false }) => {
         employer: data.employer || '',
         deceased: data.deceased || false,
         membershipType: data.membershipType,
-        membershipExpiration: data.membershipExpiration ? String(data.membershipExpiration).split('T')[0] : '',
         club: data.club._id,
       });
     } catch (err) {
@@ -153,7 +131,6 @@ const MemberForm = ({ isEdit = false }) => {
         occupation: formData.occupation || undefined,
         employer: formData.employer || undefined,
         deceased: !!formData.deceased,
-        membershipExpiration: formData.membershipExpiration || undefined,
         membershipType: formData.membershipType,
         club: formData.club,
       };
@@ -191,50 +168,14 @@ const MemberForm = ({ isEdit = false }) => {
         {error && <div className="error-banner">{error}</div>}
 
         <form onSubmit={handleSubmit}>
-          <div className="form-row">
-            <div className="form-group">
-              <label htmlFor="membershipType">Membership Type</label>
-              <select id="membershipType" name="membershipType" value={formData.membershipType} onChange={handleChange} disabled={submitting}>
-                <option value="Full">Full</option>
-                <option value="Associate">Associate</option>
-                <option value="Honorary">Honorary</option>
-                <option value="Inactive">Inactive</option>
-              </select>
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="membershipExpiration">Membership Expiration</label>
-              {
-                (() => {
-                  const today = new Date();
-                  const year = today.getFullYear();
-                  const cutoffDate = new Date(year, (cutoff.month || 10) - 1, cutoff.day || 30);
-                  const decYear = today < cutoffDate ? year : year + 1;
-                  const decIso = `${decYear}-12-31`;
-                  const cur = formData.membershipExpiration ? formData.membershipExpiration : null;
-
-                  let options = [];
-                  if (!isEdit) {
-                    // For new members always present only the computed Dec 31 option
-                    options = [decIso];
-                  } else {
-                    // For edits, show existing expiration (if any) and also allow switching to Dec 31
-                    if (cur) options.push(cur);
-                    if (!cur || decIso !== cur) options.push(decIso);
-                  }
-
-                  return (
-                    <select id="membershipExpiration" name="membershipExpiration" value={formData.membershipExpiration} onChange={handleChange} disabled={submitting}>
-                      {options.map((opt) => {
-                        const [y, m, d] = opt.split('-');
-                        const label = `${m}/${d}/${y}`;
-                        return <option key={opt} value={opt}>{label}</option>;
-                      })}
-                    </select>
-                  );
-                })()
-              }
-            </div>
+          <div className="form-group">
+            <label htmlFor="membershipType">Membership Type</label>
+            <select id="membershipType" name="membershipType" value={formData.membershipType} onChange={handleChange} disabled={submitting}>
+              <option value="Full">Full</option>
+              <option value="Associate">Associate</option>
+              <option value="Honorary">Honorary</option>
+              <option value="Inactive">Inactive</option>
+            </select>
           </div>
 
           <fieldset className="form-section">

@@ -276,7 +276,7 @@ const HomePage = () => {
         const date = new Date(v);
         return date.toLocaleDateString();
       },
-      visible: false
+      visible: true
     },
     { key: 'deceased', label: 'Deceased', render: (v) => v ? 'Yes' : 'No', visible: false },
   ];
