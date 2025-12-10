@@ -11,6 +11,7 @@ export default function PaymentOverviewPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
   const [showCheckModal, setShowCheckModal] = useState(false);
+  const [showOnlineModal, setShowOnlineModal] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
 
   useEffect(() => {
@@ -55,6 +56,28 @@ export default function PaymentOverviewPage() {
     } catch (err) {
       setError(err.message || 'Failed to update payment status');
       setShowCheckModal(false);
+    }
+  };
+
+  const handleOnlinePaymentSent = async () => {
+    try {
+      const response = await apiCall(`/payments/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status: 'Pending' })
+      });
+
+      if (!response.ok) throw new Error('Failed to update payment status');
+      
+      const updatedPayment = await response.json();
+      setPayment(updatedPayment);
+      setShowOnlineModal(false);
+      setSuccessMessage('Thank you for submitting your payment online. The payment has been updated to Pending. Once the payment has been received, the status will be updated.');
+      
+      // Clear success message after 10 seconds
+      setTimeout(() => setSuccessMessage(''), 10000);
+    } catch (err) {
+      setError(err.message || 'Failed to update payment status');
+      setShowOnlineModal(false);
     }
   };
 
@@ -152,9 +175,14 @@ export default function PaymentOverviewPage() {
         <div style={{ marginTop: 12, display: 'flex', gap: '0.5rem' }}>
           <button className="btn btn-secondary" onClick={() => navigate(-1)}>Back</button>
           {payment.status === 'Draft' && (
-            <button className="btn btn-primary" onClick={() => setShowCheckModal(true)}>
-              Pay by Check
-            </button>
+            <>
+              <button className="btn btn-primary" onClick={() => setShowCheckModal(true)}>
+                Pay by Check
+              </button>
+              <button className="btn btn-primary" onClick={() => setShowOnlineModal(true)}>
+                Pay Online
+              </button>
+            </>
           )}
         </div>
       </div>
@@ -177,6 +205,37 @@ export default function PaymentOverviewPage() {
                 Ok
               </button>
               <button className="btn btn-primary" onClick={handleCheckSent}>
+                Sent
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showOnlineModal && (
+        <div className="modal-overlay" onClick={() => setShowOnlineModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <h2>Pay Online</h2>
+            <p>
+              Please click the link below to submit your payment online. The link will open in a new window.
+            </p>
+            <div style={{ margin: '1rem 0', textAlign: 'center' }}>
+              <a 
+                href="https://payment-link-here.com" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="btn btn-primary"
+                style={{ display: 'inline-block', textDecoration: 'none' }}
+              >
+                Open Payment Portal
+              </a>
+            </div>
+            <p>Once you have completed the payment, please click <strong>Sent</strong>. Click <strong>Ok</strong> if you will pay at a later time.</p>
+            <div className="modal-actions">
+              <button className="btn btn-secondary" onClick={() => setShowOnlineModal(false)}>
+                Ok
+              </button>
+              <button className="btn btn-primary" onClick={handleOnlinePaymentSent}>
                 Sent
               </button>
             </div>
