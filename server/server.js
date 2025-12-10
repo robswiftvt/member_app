@@ -9,9 +9,29 @@ const authRoutes = require('./routes/auth');
 
 const app = express();
 
-// CORS configuration
+// CORS configuration - handle multiple origins and trailing slashes
+const allowedOrigins = [
+  'http://localhost:3000',
+  process.env.CLIENT_URL,
+].filter(Boolean).map(url => url.replace(/\/$/, '')); // Remove trailing slashes
+
 const corsOptions = {
-  origin: process.env.CLIENT_URL || 'http://localhost:3000',
+  origin: (origin, callback) => {
+    // Allow requests with no origin (mobile apps, Postman, etc.)
+    if (!origin) return callback(null, true);
+    
+    // Remove trailing slash from origin for comparison
+    const normalizedOrigin = origin.replace(/\/$/, '');
+    
+    // Check if origin is in allowed list or matches Vercel preview pattern
+    if (allowedOrigins.includes(normalizedOrigin) || 
+        normalizedOrigin.includes('robswiftvts-projects.vercel.app') ||
+        normalizedOrigin.includes('.vercel.app')) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
   optionsSuccessStatus: 200
 };
