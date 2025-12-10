@@ -10,6 +10,8 @@ export default function PaymentOverviewPage() {
   const [memberPayments, setMemberPayments] = useState([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
+  const [showCheckModal, setShowCheckModal] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
 
   useEffect(() => {
     async function load() {
@@ -34,17 +36,63 @@ export default function PaymentOverviewPage() {
     if (id) load();
   }, [id]);
 
+  const handleCheckSent = async () => {
+    try {
+      const response = await apiCall(`/payments/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status: 'Pending' })
+      });
+
+      if (!response.ok) throw new Error('Failed to update payment status');
+      
+      const updatedPayment = await response.json();
+      setPayment(updatedPayment);
+      setShowCheckModal(false);
+      setSuccessMessage('Thank you for sending your payment. The payment has been updated to Pending. Once the check has been received, the status will be updated.');
+      
+      // Clear success message after 10 seconds
+      setTimeout(() => setSuccessMessage(''), 10000);
+    } catch (err) {
+      setError(err.message || 'Failed to update payment status');
+      setShowCheckModal(false);
+    }
+  };
+
   const summary = (() => {
     const clubFee = payment ? Number(payment.clubFeeAmount || 0) : 0;
+    
+    // Count and sum from the actual members grid
+    let fullCount = 0;
+    let honoraryCount = 0;
     let sumFull = 0;
     let sumHonorary = 0;
+    
     for (const mp of memberPayments) {
       const mt = mp.member?.membershipType || 'Full';
       const amt = Number(mp.amount || 0);
-      if (mt === 'Full') sumFull += amt;
-      else if (mt === 'Honorary') sumHonorary += amt;
+      if (mt === 'Full') {
+        fullCount++;
+        sumFull += amt;
+      } else if (mt === 'Honorary') {
+        honoraryCount++;
+        sumHonorary += amt;
+      }
     }
-    return { clubFee, sumFull, sumHonorary, total: clubFee + sumFull + sumHonorary };
+    
+    // Calculate average amounts, or use default if no members
+    const avgFull = fullCount > 0 ? sumFull / fullCount : 25.00;
+    const avgHonorary = honoraryCount > 0 ? sumHonorary / honoraryCount : 20.00;
+    
+    return { 
+      clubFee, 
+      fullCount, 
+      honoraryCount, 
+      avgFull, 
+      avgHonorary, 
+      sumFull, 
+      sumHonorary, 
+      total: clubFee + sumFull + sumHonorary 
+    };
   })();
 
   if (loading) return <div className="form-container"><div className="loading">Loading...</div></div>;
@@ -55,6 +103,11 @@ export default function PaymentOverviewPage() {
     <div className="form-container">
       <div className="form-card">
         <h1>Payment Overview</h1>
+        
+        {successMessage && (
+          <div className="success-banner" style={{ marginBottom: '1rem' }}>{successMessage}</div>
+        )}
+        
         <div style={{ marginBottom: 12 }} className="payment-meta">
           <div style={{ marginBottom: 8 }}>
             <strong>Status:</strong> <span className={`status-badge ${payment.status?.toLowerCase()}`}>{payment.status}</span>
@@ -70,13 +123,13 @@ export default function PaymentOverviewPage() {
 
         <div className="payment-summary">
           <div className="summary-row"><div className="summary-label">Club Fee Amount</div><div className="summary-amount">${summary.clubFee.toFixed(2)}</div></div>
-          <div className="summary-row"><div className="summary-label">Full Members ({memberPayments.filter(m => (m.member?.membershipType || 'Full') === 'Full').length} @ ${payment ? Number(payment.clubFeeAmount || 0).toFixed(2) : '0.00'})</div><div className="summary-amount">${summary.sumFull.toFixed(2)}</div></div>
-          <div className="summary-row"><div className="summary-label">Honorary Members ({memberPayments.filter(m => (m.member?.membershipType || 'Full') === 'Honorary').length} @ ${payment ? Number(payment.clubFeeAmount || 0).toFixed(2) : '0.00'})</div><div className="summary-amount">${summary.sumHonorary.toFixed(2)}</div></div>
+          <div className="summary-row"><div className="summary-label">Full Members ({summary.fullCount} @ ${summary.avgFull.toFixed(2)})</div><div className="summary-amount">${summary.sumFull.toFixed(2)}</div></div>
+          <div className="summary-row"><div className="summary-label">Honorary Members ({summary.honoraryCount} @ ${summary.avgHonorary.toFixed(2)})</div><div className="summary-amount">${summary.sumHonorary.toFixed(2)}</div></div>
           <div className="summary-separator" />
           <div className="summary-total"><div className="summary-label">Total</div><div className="summary-amount">${summary.total.toFixed(2)}</div></div>
         </div>
 
-        <h2>Members Paid ({memberPayments.length})</h2>
+        <h2>Members ({memberPayments.length})</h2>
         <div className="table-responsive">
           <table className="data-grid">
             <thead>
@@ -96,10 +149,40 @@ export default function PaymentOverviewPage() {
           </table>
         </div>
 
-        <div style={{ marginTop: 12 }}>
+        <div style={{ marginTop: 12, display: 'flex', gap: '0.5rem' }}>
           <button className="btn btn-secondary" onClick={() => navigate(-1)}>Back</button>
+          {payment.status === 'Draft' && (
+            <button className="btn btn-primary" onClick={() => setShowCheckModal(true)}>
+              Pay by Check
+            </button>
+          )}
         </div>
       </div>
+
+      {showCheckModal && (
+        <div className="modal-overlay" onClick={() => setShowCheckModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <h2>Pay by Check</h2>
+            <p>
+              Please send a check for <strong>${summary.total.toFixed(2)}</strong> made payable to <strong>NCFWC</strong> and send to the following address:
+            </p>
+            <div style={{ marginLeft: '1rem', marginBottom: '1rem' }}>
+              <div>Heather Swift</div>
+              <div>301 Russo Valley Dr.</div>
+              <div>Cary, NC 27519</div>
+            </div>
+            <p>Once the check has been sent, click <strong>Sent</strong>. Click <strong>Ok</strong> if you have not sent the check.</p>
+            <div className="modal-actions">
+              <button className="btn btn-secondary" onClick={() => setShowCheckModal(false)}>
+                Ok
+              </button>
+              <button className="btn btn-primary" onClick={handleCheckSent}>
+                Sent
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
