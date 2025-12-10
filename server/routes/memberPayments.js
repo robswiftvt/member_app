@@ -23,7 +23,7 @@ router.get('/', authMiddleware, async (req, res) => {
     // include membershipType on populated member so clients can show the type in member payment lists
     const list = await MemberPayment.find(query)
       .populate('member', 'firstName lastName email membershipType')
-      .populate('clubPayment', 'paymentId clubYear');
+      .populate('clubPayment', 'paymentId clubYear status');
     res.json(list);
   } catch (err) {
     console.error('Fetch member payments error:', err);

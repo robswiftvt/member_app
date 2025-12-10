@@ -57,7 +57,8 @@ const ClubOverviewPage = () => {
       const membersRes = await apiCall(`/members`);
       if (!membersRes.ok) throw new Error('Failed to fetch members');
       const membersData = await membersRes.json();
-      setMembers(membersData.filter((m) => m.club && m.club._id === clubId));
+      const clubMembers = membersData.filter((m) => m.club && m.club._id === clubId);
+      
       // fetch payments for this club as well
       try {
         const paymentsRes = await apiCall(`/payments?clubId=${clubId}`);
@@ -68,6 +69,24 @@ const ClubOverviewPage = () => {
             const mpRes = await apiCall(`/member-payments?clubId=${clubId}`);
             let mpData = [];
             if (mpRes && mpRes.ok) mpData = await mpRes.json();
+
+            // Group member payments by member ID and find latest
+            const latestPaymentByMember = {};
+            mpData.forEach(mp => {
+              const memberId = mp.member?._id || mp.member;
+              if (!latestPaymentByMember[memberId] || 
+                  (mp.clubPayment?.clubYear > latestPaymentByMember[memberId].clubPayment?.clubYear)) {
+                latestPaymentByMember[memberId] = mp;
+              }
+            });
+            
+            // Enrich members with payment status
+            const enrichedMembers = clubMembers.map(member => ({
+              ...member,
+              latestPayment: latestPaymentByMember[member._id]
+            }));
+            
+            setMembers(enrichedMembers);
 
             // group sums by clubPayment id
             const sums = {};
@@ -87,6 +106,7 @@ const ClubOverviewPage = () => {
             setPayments(enriched);
           } catch (err) {
             setPayments(paymentsData);
+            setMembers(clubMembers);
           }
         }
       } catch (err) {
@@ -265,6 +285,30 @@ const ClubOverviewPage = () => {
     setPaymentModal({ isOpen: false, mode: null, draftPayment: null, addedCount: 0 });
   };
 
+  const handleNewPayment = async () => {
+    try {
+      const currentYear = new Date().getFullYear();
+      const createResponse = await apiCall('/payments', {
+        method: 'POST',
+        body: JSON.stringify({
+          club: clubId,
+          clubFeeAmount: 0,
+          date: new Date().toISOString(),
+          clubYear: currentYear,
+          status: 'Draft'
+        })
+      });
+
+      if (!createResponse.ok) throw new Error('Failed to create payment');
+      const newPayment = await createResponse.json();
+      
+      // Navigate to the payment overview page
+      navigate(`/payments/view/${newPayment._id}`);
+    } catch (err) {
+      setError(err.message || 'Failed to create payment');
+    }
+  };
+
   if (loading) {
     return <div className="club-overview-container"><div className="loading">Loading...</div></div>;
   }
@@ -281,6 +325,16 @@ const ClubOverviewPage = () => {
       key: 'membershipType',
       label: 'Membership Type',
       render: (value) => <span className={`badge ${value.toLowerCase()}`}>{value}</span>,
+      visible: true
+    },
+    { 
+      key: 'memberStatus', 
+      label: 'Member Status', 
+      render: (v, row) => {
+        const payment = row.latestPayment?.clubPayment;
+        if (!payment) return '-';
+        return `${payment.status || 'Unknown'} (${payment.clubYear || ''})`;
+      },
       visible: true
     },
     { key: 'nfrwContactId', label: 'NFRW ID', render: (v) => v || '-', visible: false },
@@ -470,36 +524,17 @@ const ClubOverviewPage = () => {
           <div className="payments-section">
             <div className="members-header">
               <h2>Club Payments</h2>
-              <button className="btn btn-primary" onClick={() => navigate(`/payments/new?clubId=${clubId}`)}>
-                + New Payment
-              </button>
+              {!payments.find(p => p.status === 'Draft') && (
+                <button className="btn btn-primary" onClick={handleNewPayment}>
+                  + New Payment
+                </button>
+              )}
             </div>
 
               <div style={{ marginTop: '1rem' }}>
                 {/* Select Club Payment removed per UI change request */}
 
                 <DataGrid columns={paymentColumns} rows={payments} pageSize={10} />
-
-                {unpaidMembers.length > 0 && (
-                  <div style={{ marginTop: '1.5rem' }}>
-                    <h3>Unpaid Members ({unpaidMembers.length})</h3>
-                    <DataGrid
-                      columns={[
-                        { key: 'firstName', label: 'First Name' },
-                        { key: 'lastName', label: 'Last Name' },
-                        { key: 'email', label: 'Email' },
-                        { key: 'membershipExpiration', label: 'Expiration', render: (v) => {
-                          if (!v) return '';
-                          const iso = String(v).split('T')[0];
-                          const [y,m,d] = iso.split('-');
-                          return `${m}/${d}/${y}`;
-                        } },
-                      ]}
-                      rows={unpaidMembers}
-                      pageSize={10}
-                    />
-                  </div>
-                )}
               </div>
           </div>
         )}

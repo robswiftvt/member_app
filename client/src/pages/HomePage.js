@@ -65,8 +65,38 @@ const HomePage = () => {
     try {
       const response = await apiCall('/members');
       if (!response.ok) throw new Error('Failed to fetch members');
-      const data = await response.json();
-      setMembers(data);
+      const membersData = await response.json();
+      
+      // Fetch all member payments to determine latest status
+      try {
+        const mpRes = await apiCall('/member-payments');
+        if (mpRes && mpRes.ok) {
+          const memberPayments = await mpRes.json();
+          
+          // Group member payments by member ID and find latest
+          const latestPaymentByMember = {};
+          memberPayments.forEach(mp => {
+            const memberId = mp.member?._id || mp.member;
+            if (!latestPaymentByMember[memberId] || 
+                (mp.clubPayment?.clubYear > latestPaymentByMember[memberId].clubPayment?.clubYear)) {
+              latestPaymentByMember[memberId] = mp;
+            }
+          });
+          
+          // Enrich members with payment status
+          const enrichedMembers = membersData.map(member => ({
+            ...member,
+            latestPayment: latestPaymentByMember[member._id]
+          }));
+          
+          setMembers(enrichedMembers);
+        } else {
+          setMembers(membersData);
+        }
+      } catch (err) {
+        console.warn('Failed to fetch member payments:', err);
+        setMembers(membersData);
+      }
     } catch (err) {
       setError(err.message);
       console.error('Fetch error:', err);
@@ -260,6 +290,16 @@ const HomePage = () => {
     { key: 'club', label: 'Club', render: (v) => (v && v.name ? v.name : '-'), visible: true },
     { key: 'membershipType', label: 'Member Type', render: (v) => v || '-', visible: true },
     { key: 'adminType', label: 'Admin Type', render: (v) => v || '-', visible: true },
+    { 
+      key: 'memberStatus', 
+      label: 'Member Status', 
+      render: (v, row) => {
+        const payment = row.latestPayment?.clubPayment;
+        if (!payment) return '-';
+        return `${payment.status || 'Unknown'} (${payment.clubYear || ''})`;
+      },
+      visible: true
+    },
     { key: 'nfrwContactId', label: 'NFRW ID', render: (v) => v || '-', visible: false },
     { key: 'charterNumber', label: 'Charter Number', render: (v, row) => (row.club && row.club.charterNumber ? row.club.charterNumber : '-'), visible: false },
     { key: 'streetAddress', label: 'Address', render: (v) => v || '-', visible: false },
