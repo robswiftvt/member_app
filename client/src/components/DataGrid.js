@@ -10,7 +10,9 @@ const DataGrid = ({
   pageSize = 10,
   enableColumnSelect = false,
   enableFilter = false,
-  enableSort = false
+  enableSort = false,
+  enableCheckbox = false,
+  onSelectionChange
 }) => {
   const [currentPage, setCurrentPage] = useState(0);
   const [visibleColumns, setVisibleColumns] = useState(
@@ -21,6 +23,7 @@ const DataGrid = ({
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
   const [showColumnMenu, setShowColumnMenu] = useState(false);
   const [draggedColumn, setDraggedColumn] = useState(null);
+  const [selectedRows, setSelectedRows] = useState([]);
 
   // Filter rows
   let filteredRows = rows;
@@ -115,6 +118,25 @@ const DataGrid = ({
     setDraggedColumn(null);
   };
 
+  const handleSelectAll = (e) => {
+    if (e.target.checked) {
+      const allIds = paginatedRows.map(row => row._id || row.id);
+      setSelectedRows(allIds);
+      if (onSelectionChange) onSelectionChange(allIds);
+    } else {
+      setSelectedRows([]);
+      if (onSelectionChange) onSelectionChange([]);
+    }
+  };
+
+  const handleSelectRow = (rowId) => {
+    const newSelection = selectedRows.includes(rowId)
+      ? selectedRows.filter(id => id !== rowId)
+      : [...selectedRows, rowId];
+    setSelectedRows(newSelection);
+    if (onSelectionChange) onSelectionChange(newSelection);
+  };
+
   // Create ordered column definitions based on columnOrder
   const orderedColumns = columnOrder
     .map(key => columns.find(col => col.key === key))
@@ -177,6 +199,15 @@ const DataGrid = ({
             <table className="data-grid">
               <thead>
                 <tr>
+                  {enableCheckbox && (
+                    <th style={{ width: '40px' }}>
+                      <input
+                        type="checkbox"
+                        onChange={handleSelectAll}
+                        checked={paginatedRows.length > 0 && selectedRows.length === paginatedRows.length}
+                      />
+                    </th>
+                  )}
                   {visibleColumnDefs.map((col) => (
                     <th 
                       key={col.key}
@@ -202,6 +233,15 @@ const DataGrid = ({
               <tbody>
                 {paginatedRows.map((row, idx) => (
                   <tr key={row.id || idx}>
+                    {enableCheckbox && (
+                      <td style={{ width: '40px' }}>
+                        <input
+                          type="checkbox"
+                          checked={selectedRows.includes(row._id || row.id)}
+                          onChange={() => handleSelectRow(row._id || row.id)}
+                        />
+                      </td>
+                    )}
                     {visibleColumnDefs.map((col) => (
                       <td key={col.key}>
                         {col.render ? col.render(row[col.key], row) : row[col.key]}

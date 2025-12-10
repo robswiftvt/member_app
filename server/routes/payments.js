@@ -56,7 +56,7 @@ router.post(
     body('clubFeeAmount').notEmpty().isFloat({ min: 0 }).withMessage('Club fee amount required'),
     body('date').notEmpty().isISO8601().toDate().withMessage('Valid date required'),
     body('clubYear').notEmpty().isInt({ min: 1900 }).withMessage('Valid club year required'),
-    body('status').optional().isIn(['Pending', 'Received', 'Paid']).withMessage('Invalid status'),
+    body('status').optional().isIn(['Draft', 'Pending', 'Received', 'Paid']).withMessage('Invalid status'),
   ],
   handleValidationErrors,
   async (req, res) => {
@@ -87,7 +87,7 @@ router.post(
 router.patch(
   '/:id',
   authMiddleware,
-  [body('status').notEmpty().isIn(['Pending', 'Received', 'Paid']).withMessage('Invalid status')],
+  [body('status').notEmpty().isIn(['Draft', 'Pending', 'Received', 'Paid']).withMessage('Invalid status')],
   handleValidationErrors,
   async (req, res) => {
     try {

@@ -98,4 +98,76 @@ router.get('/unpaid', authMiddleware, async (req, res) => {
   }
 });
 
+// POST bulk add members to a club payment
+router.post(
+  '/bulk-add',
+  authMiddleware,
+  [
+    body('members').isArray({ min: 1 }).withMessage('Members array required with at least one member'),
+    body('clubPayment').notEmpty().isMongoId().withMessage('Valid clubPayment ID required'),
+    body('club').notEmpty().isMongoId().withMessage('Valid club ID required'),
+    body('clubYear').notEmpty().isInt({ min: 1900 }).withMessage('Valid club year required'),
+  ],
+  handleValidationErrors,
+  async (req, res) => {
+    try {
+      const { members, club, clubPayment, clubYear } = req.body;
+
+      // Validate clubPayment exists
+      const cp = await ClubPayment.findById(clubPayment);
+      if (!cp) return res.status(400).json({ error: 'ClubPayment not found' });
+
+      // Extract member IDs from members array (supports both simple IDs and objects with memberId/amount)
+      const memberIds = members.map(m => typeof m === 'string' ? m : m.memberId);
+
+      // Filter out members that already have a payment for this clubPayment
+      const existingPayments = await MemberPayment.find({
+        clubPayment,
+        member: { $in: memberIds }
+      }).select('member');
+      
+      const existingMemberIds = new Set(existingPayments.map(p => p.member.toString()));
+      const membersToAdd = members.filter(m => {
+        const memberId = typeof m === 'string' ? m : m.memberId;
+        return !existingMemberIds.has(memberId);
+      });
+
+      if (membersToAdd.length === 0) {
+        return res.json({ 
+          success: true, 
+          addedCount: 0, 
+          skippedCount: members.length,
+          message: 'All selected members already in payment' 
+        });
+      }
+
+      // Create member payments for each member
+      const memberPayments = membersToAdd.map(m => {
+        const memberId = typeof m === 'string' ? m : m.memberId;
+        const amount = typeof m === 'object' && m.amount ? m.amount : 25.00; // Default to $25 if not specified
+        
+        return {
+          member: memberId,
+          club,
+          clubPayment,
+          amount,
+          clubYear
+        };
+      });
+
+      await MemberPayment.insertMany(memberPayments);
+
+      res.json({ 
+        success: true, 
+        addedCount: membersToAdd.length,
+        skippedCount: existingMemberIds.size,
+        message: `Successfully added ${membersToAdd.length} member(s) to payment` 
+      });
+    } catch (err) {
+      console.error('Bulk add member payments error:', err);
+      res.status(500).json({ error: 'Failed to add members to payment' });
+    }
+  }
+);
+
 module.exports = router;

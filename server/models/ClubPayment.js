@@ -4,7 +4,7 @@ const clubPaymentSchema = new mongoose.Schema(
   {
     paymentId: { type: String, unique: true, index: true },
     club: { type: mongoose.Schema.Types.ObjectId, ref: 'Club', required: true },
-    status: { type: String, enum: ['Pending', 'Received', 'Paid'], default: 'Pending' },
+    status: { type: String, enum: ['Draft', 'Pending', 'Received', 'Paid'], default: 'Draft' },
     clubFeeAmount: { type: Number, required: true },
     date: { type: Date, required: true },
     clubYear: { type: Number, required: true },

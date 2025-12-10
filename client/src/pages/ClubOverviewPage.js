@@ -5,6 +5,7 @@ import apiCall from '../utils/apiCall';
 import DataGrid from '../components/DataGrid';
 import ConfirmModal from '../components/ConfirmModal';
 import ChangeMemberAdminModal from '../components/ChangeMemberAdminModal';
+import AddMembersToPaymentModal from '../components/AddMembersToPaymentModal';
 import './ClubOverviewPage.css';
 
 const ClubOverviewPage = () => {
@@ -29,6 +30,13 @@ const ClubOverviewPage = () => {
   const [activeTab, setActiveTab] = useState('members');
   const [updatingPaymentId, setUpdatingPaymentId] = useState(null);
   const [confirmPaymentModal, setConfirmPaymentModal] = useState({ isOpen: false, payment: null });
+  const [selectedMembers, setSelectedMembers] = useState([]);
+  const [paymentModal, setPaymentModal] = useState({ 
+    isOpen: false, 
+    mode: null, // 'confirm-existing' | 'confirm-create' | 'success'
+    draftPayment: null,
+    addedCount: 0 
+  });
 
   useEffect(() => {
     if (clubId) {
@@ -144,6 +152,117 @@ const ClubOverviewPage = () => {
     } finally {
       setDeleting(false);
     }
+  };
+
+  const handleAddToPayment = async () => {
+    if (selectedMembers.length === 0) return;
+
+    try {
+      // Check if there's a Draft payment for this club
+      const response = await apiCall(`/payments?clubId=${clubId}`);
+      if (!response.ok) throw new Error('Failed to fetch payments');
+      
+      const allPayments = await response.json();
+      const draftPayment = allPayments.find(p => p.status === 'Draft');
+
+      if (draftPayment) {
+        // Show modal to confirm adding to existing draft
+        setPaymentModal({ 
+          isOpen: true, 
+          mode: 'confirm-existing', 
+          draftPayment,
+          addedCount: 0 
+        });
+      } else {
+        // Show modal to confirm creating new draft
+        setPaymentModal({ 
+          isOpen: true, 
+          mode: 'confirm-create', 
+          draftPayment: null,
+          addedCount: 0 
+        });
+      }
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const handleConfirmAddToPayment = async () => {
+    try {
+      const { draftPayment, mode } = paymentModal;
+      let paymentId = draftPayment?._id;
+
+      // If no draft exists, create one
+      if (mode === 'confirm-create') {
+        const currentYear = new Date().getFullYear();
+        const createResponse = await apiCall('/payments', {
+          method: 'POST',
+          body: JSON.stringify({
+            club: clubId,
+            clubFeeAmount: 0,
+            date: new Date().toISOString(),
+            clubYear: currentYear,
+            status: 'Draft'
+          })
+        });
+
+        if (!createResponse.ok) throw new Error('Failed to create payment');
+        const newPayment = await createResponse.json();
+        paymentId = newPayment._id;
+      }
+
+      // Add members to the payment
+      const currentYear = draftPayment?.clubYear || new Date().getFullYear();
+      
+      // Get member details to determine amounts based on membership type
+      const membersWithAmounts = selectedMembers.map(memberId => {
+        const member = members.find(m => m._id === memberId);
+        let amount = 25.00; // Default for Full members
+        
+        if (member?.membershipType === 'Honorary') {
+          amount = 20.00;
+        } else if (member?.membershipType === 'Full') {
+          amount = 25.00;
+        }
+        
+        return {
+          memberId,
+          amount
+        };
+      });
+      
+      const addResponse = await apiCall('/member-payments/bulk-add', {
+        method: 'POST',
+        body: JSON.stringify({
+          members: membersWithAmounts,
+          clubPayment: paymentId,
+          club: clubId,
+          clubYear: currentYear
+        })
+      });
+
+      if (!addResponse.ok) throw new Error('Failed to add members to payment');
+      const result = await addResponse.json();
+
+      // Show success modal
+      setPaymentModal({ 
+        isOpen: true, 
+        mode: 'success', 
+        draftPayment: null,
+        addedCount: result.addedCount 
+      });
+
+      // Refresh data
+      await fetchClubAndMembers();
+      setSelectedMembers([]);
+    } catch (err) {
+      setError(err.message);
+      setPaymentModal({ isOpen: false, mode: null, draftPayment: null, addedCount: 0 });
+    }
+  };
+
+  const handleCancelAddToPayment = () => {
+    setPaymentModal({ isOpen: false, mode: null, draftPayment: null, addedCount: 0 });
   };
 
   if (loading) {
@@ -281,6 +400,18 @@ const ClubOverviewPage = () => {
                   <button className="btn btn-primary" onClick={() => navigate(`/member/add?clubId=${clubId}`)}>
                     + Add Member
                   </button>
+                  <button 
+                    className="btn btn-primary" 
+                    onClick={handleAddToPayment}
+                    disabled={selectedMembers.length === 0}
+                    title={selectedMembers.length === 0 ? 'Please select users to add to the Payment' : ''}
+                    style={{ 
+                      opacity: selectedMembers.length === 0 ? 0.5 : 1,
+                      cursor: selectedMembers.length === 0 ? 'not-allowed' : 'pointer'
+                    }}
+                  >
+                    Renew/Add to Payment
+                  </button>
                   <div>
                     <button className="btn btn-secondary" onClick={() => document.getElementById('import-xls-input')?.click()}>
                       Import from XLS
@@ -329,6 +460,8 @@ const ClubOverviewPage = () => {
               enableColumnSelect={true}
               enableFilter={true}
               enableSort={true}
+              enableCheckbox={true}
+              onSelectionChange={setSelectedMembers}
             />
           </div>
         )}
@@ -398,6 +531,15 @@ const ClubOverviewPage = () => {
         clubId={clubId}
         currentAdminMember={club.memberAdmin}
         onUpdated={() => fetchClubAndMembers()}
+      />
+      <AddMembersToPaymentModal
+        isOpen={paymentModal.isOpen}
+        mode={paymentModal.mode}
+        memberCount={selectedMembers.length}
+        addedCount={paymentModal.addedCount}
+        onConfirm={handleConfirmAddToPayment}
+        onCancel={handleCancelAddToPayment}
+        isLoading={false}
       />
     </div>
   );
