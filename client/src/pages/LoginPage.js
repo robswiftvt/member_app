@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import './LoginPage.css';
 
+const API_BASE_URL = process.env.REACT_APP_API_URL || '/api';
+
 const LoginPage = () => {
   const navigate = useNavigate();
   const { login, setLoading } = useAuth();
@@ -19,7 +21,7 @@ const LoginPage = () => {
     setLoading(true);
 
     try {
-      const response = await fetch('/api/auth/login', {
+      const response = await fetch(`${API_BASE_URL}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
