@@ -214,14 +214,32 @@ const ClubOverviewPage = () => {
 
       // If no draft exists, create one
       if (mode === 'confirm-create') {
-        const currentYear = new Date().getFullYear();
+        const today = new Date();
+        const currentYear = today.getFullYear();
+        // If after October 31st, use next year
+        const month = today.getMonth(); // 0-indexed, so October = 9
+        const day = today.getDate();
+        const clubYear = (month === 9 && day > 31) || month > 9 ? currentYear + 1 : currentYear;
+        
+        // Fetch config to get default club fee amount
+        let clubFeeAmount = 15; // Default fallback
+        try {
+          const configRes = await apiCall('/config');
+          if (configRes.ok) {
+            const config = await configRes.json();
+            clubFeeAmount = Number(config.clubFeeAmount || 15);
+          }
+        } catch (err) {
+          console.warn('Failed to fetch config, using default club fee:', err);
+        }
+        
         const createResponse = await apiCall('/payments', {
           method: 'POST',
           body: JSON.stringify({
             club: clubId,
-            clubFeeAmount: 0,
+            clubFeeAmount: clubFeeAmount,
             date: new Date().toISOString(),
-            clubYear: currentYear,
+            clubYear: clubYear,
             status: 'Draft'
           })
         });
@@ -287,14 +305,32 @@ const ClubOverviewPage = () => {
 
   const handleNewPayment = async () => {
     try {
-      const currentYear = new Date().getFullYear();
+      const today = new Date();
+      const currentYear = today.getFullYear();
+      // If after October 31st, use next year
+      const month = today.getMonth(); // 0-indexed, so October = 9
+      const day = today.getDate();
+      const clubYear = (month === 9 && day > 31) || month > 9 ? currentYear + 1 : currentYear;
+      
+      // Fetch config to get default club fee amount
+      let clubFeeAmount = 15; // Default fallback
+      try {
+        const configRes = await apiCall('/config');
+        if (configRes.ok) {
+          const config = await configRes.json();
+          clubFeeAmount = Number(config.clubFeeAmount || 15);
+        }
+      } catch (err) {
+        console.warn('Failed to fetch config, using default club fee:', err);
+      }
+      
       const createResponse = await apiCall('/payments', {
         method: 'POST',
         body: JSON.stringify({
           club: clubId,
-          clubFeeAmount: 0,
+          clubFeeAmount: clubFeeAmount,
           date: new Date().toISOString(),
-          clubYear: currentYear,
+          clubYear: clubYear,
           status: 'Draft'
         })
       });
