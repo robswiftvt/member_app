@@ -17,25 +17,8 @@ try {
 
 const router = express.Router();
 
-// Configure multer storage
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    try {
-      const clubId = req.query.clubId || 'system';
-      const dir = path.join(__dirname, '..', 'uploads', 'nfrw_import', String(clubId));
-      fs.mkdirSync(dir, { recursive: true });
-      cb(null, dir);
-    } catch (err) {
-      cb(err);
-    }
-  },
-  filename: function (req, file, cb) {
-    const ts = Date.now();
-    const clean = file.originalname.replace(/[^a-zA-Z0-9\.\-\_]/g, '_');
-    cb(null, `${ts}-${clean}`);
-  }
-});
-
+// Configure multer to use memory storage (Render has ephemeral filesystem)
+const storage = multer.memoryStorage();
 const upload = multer({ storage, limits: { fileSize: 10 * 1024 * 1024 } });
 
 // GET /api/file-imports - List all file imports
@@ -88,15 +71,12 @@ router.post('/', authMiddleware, upload.single('file'), async (req, res) => {
     }
 
     const clubId = req.query.clubId || null;
-    const relPath = clubId 
-      ? `/uploads/nfrw_import/${clubId}/${req.file.filename}`
-      : `/uploads/nfrw_import/system/${req.file.filename}`;
 
-    // Extract ExportSetID from the file if xlsx is available
+    // Extract ExportSetID from the file buffer if xlsx is available
     let exportSetId = null;
     if (XLSX) {
       try {
-        const workbook = XLSX.readFile(req.file.path);
+        const workbook = XLSX.read(req.file.buffer, { type: 'buffer' });
         const sheetName = workbook.SheetNames[0];
         const sheet = workbook.Sheets[sheetName];
         const rows = XLSX.utils.sheet_to_json(sheet, { defval: '', raw: false });
@@ -117,15 +97,16 @@ router.post('/', authMiddleware, upload.single('file'), async (req, res) => {
       }
     }
 
-    // Create FileImport record
+    // Create FileImport record (no filePath since we process from memory)
     const fileImport = new FileImport({
-      filename: req.file.filename,
+      filename: req.file.originalname,
       originalName: req.file.originalname,
-      filePath: relPath,
+      filePath: null, // Not stored on disk
       exportSetId,
       club: clubId,
       uploadedBy: req.user.memberId,
       status: 'Uploaded',
+      fileBuffer: req.file.buffer, // Store buffer temporarily for processing
     });
 
     await fileImport.save();
@@ -169,7 +150,7 @@ router.post('/:id/process', authMiddleware, async (req, res) => {
       return res.status(403).json({ error: 'Insufficient permissions to process files' });
     }
 
-    const fileImport = await FileImport.findById(req.params.id);
+    const fileImport = await FileImport.findById(req.params.id).select('+fileBuffer');
     if (!fileImport) {
       return res.status(404).json({ error: 'File import not found' });
     }
@@ -182,9 +163,12 @@ router.post('/:id/process', authMiddleware, async (req, res) => {
     fileImport.status = 'Processing';
     await fileImport.save();
 
-    // Read and parse the Excel file
-    const filePath = path.join(__dirname, '..', fileImport.filePath.replace(/^\//, ''));
-    const workbook = XLSX.readFile(filePath);
+    // Parse the Excel file from buffer
+    if (!fileImport.fileBuffer) {
+      throw new Error('File buffer not available. File may have been processed already or is too old.');
+    }
+    
+    const workbook = XLSX.read(fileImport.fileBuffer, { type: 'buffer' });
     const sheetName = workbook.SheetNames[0];
     const sheet = workbook.Sheets[sheetName];
     const rows = XLSX.utils.sheet_to_json(sheet, { defval: '', raw: false });
@@ -518,6 +502,7 @@ router.post('/:id/process', authMiddleware, async (req, res) => {
     fileImport.recordsUpdated = results.updated;
     fileImport.recordsSkipped = results.skipped;
     fileImport.errors = results.errors.map(e => `Row ${e.row}: ${e.reason}`);
+    fileImport.fileBuffer = undefined; // Clear buffer after processing to save memory
     await fileImport.save();
 
     res.json({

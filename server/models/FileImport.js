@@ -14,8 +14,13 @@ const fileImportSchema = new mongoose.Schema(
     },
     filePath: {
       type: String,
-      required: true,
+      required: false, // Not required when using memory storage
       trim: true,
+    },
+    fileBuffer: {
+      type: Buffer,
+      required: false,
+      select: false, // Don't include in queries by default (large data)
     },
     exportSetId: {
       type: String,
