@@ -145,8 +145,10 @@ const HomePage = () => {
     const form = new FormData();
     form.append('file', file);
 
+    const API_BASE_URL = process.env.REACT_APP_API_URL || '/api';
+
     try {
-      const res = await fetch('/api/file-imports', {
+      const res = await fetch(`${API_BASE_URL}/file-imports`, {
         method: 'POST',
         headers: token ? { Authorization: `Bearer ${token}` } : {},
         body: form,

@@ -513,8 +513,9 @@ const ClubOverviewPage = () => {
                       const token = localStorage.getItem('token');
                       const form = new FormData();
                       form.append('file', f);
+                      const API_BASE_URL = process.env.REACT_APP_API_URL || '/api';
                       try {
-                        const res = await fetch(`/api/uploads/nfrw_import?clubId=${encodeURIComponent(clubId)}`, {
+                        const res = await fetch(`${API_BASE_URL}/uploads/nfrw_import?clubId=${encodeURIComponent(clubId)}`, {
                           method: 'POST',
                           headers: token ? { Authorization: `Bearer ${token}` } : {},
                           body: form,
